@@ -31,13 +31,13 @@
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333333; }
     .form-group input, .form-group select {
-      width: 100%; padding: 7px; border: 1px solid #cccccc; border-radius: 4px; box-sizing: border-box; font-size: 13px;
+      width: 100%; padding: 8px; border: 1px solid #cccccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; background: #fff;
     }
     .modal-actions {
       display: flex; justify-content: space-between; align-items: center;
       margin-top: 18px; padding-top: 12px; border-top: 1px solid #eeeeee;
     }
-    .btn { padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
     .btn-primary { background: #1f4e79; color: #ffffff; }
     .btn-secondary { background: #e0e0e0; color: #333333; }
     .btn-danger { background: #dc3545; color: #ffffff; }
@@ -46,7 +46,7 @@
 <body>
   <div id="calendar"></div>
 
-  <!-- Boîte modale -->
+  <!-- Modal -->
   <div id="modal-overlay">
     <div class="modal-box">
       <h3 id="modal-title">Programmer une séance</h3>
@@ -54,7 +54,7 @@
       
       <div class="form-group">
         <label>Activité / Entretien / Bilan</label>
-        <select id="modal-activite">
+        <select id="modal-activite" onchange="toggleNewActivity(this.value)">
           <option value="">-- Choisir une activité --</option>
           <option value="__NEW__">➕ Créer une nouvelle activité...</option>
         </select>
@@ -62,7 +62,7 @@
 
       <div class="form-group" id="group-new-activite" style="display:none;">
         <label>Nom de la nouvelle activité</label>
-        <input type="text" id="new-activite-nom" placeholder="Ex: Remobilisation, Bilan, Atelier..." />
+        <input type="text" id="new-activite-nom" placeholder="Ex: Boxe, Remobilisation..." />
       </div>
 
       <div class="form-group">
@@ -77,7 +77,31 @@
       <div style="display:flex; gap:10px;">
         <div class="form-group" style="flex:1;">
           <label>Heure de début</label>
-          <select id="modal-time-start"></select>
+          <!-- Menu déroulant pur pour éliminer la roulette des minutes -->
+          <select id="modal-time-start">
+            <option value="08:00">08 h 00</option>
+            <option value="08:30">08 h 30</option>
+            <option value="09:00">09 h 00</option>
+            <option value="09:30">09 h 30</option>
+            <option value="10:00">10 h 00</option>
+            <option value="10:30">10 h 30</option>
+            <option value="11:00">11 h 00</option>
+            <option value="11:30">11 h 30</option>
+            <option value="12:00">12 h 00</option>
+            <option value="12:30">12 h 30</option>
+            <option value="13:00">13 h 00</option>
+            <option value="13:30">13 h 30</option>
+            <option value="14:00">14 h 00</option>
+            <option value="14:30">14 h 30</option>
+            <option value="15:00">15 h 00</option>
+            <option value="15:30">15 h 30</option>
+            <option value="16:00">16 h 00</option>
+            <option value="16:30">16 h 30</option>
+            <option value="17:00">17 h 00</option>
+            <option value="17:30">17 h 30</option>
+            <option value="18:00">18 h 00</option>
+            <option value="18:30">18 h 30</option>
+          </select>
         </div>
         <div class="form-group" style="flex:1;">
           <label>Durée</label>
@@ -93,14 +117,14 @@
       </div>
 
       <div class="form-group">
-        <label>Positionner un groupe (Classe)</label>
-        <select id="modal-classe">
+        <label>Affecter une classe entière</label>
+        <select id="modal-classe" onchange="if(this.value) document.getElementById('modal-eleve').value='';">
           <option value="">-- Aucun groupe automatique --</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Ou positionner un élève individuel</label>
+        <label>Ou affecter un élève individuel</label>
         <select id="modal-eleve">
           <option value="">-- Aucun élève --</option>
         </select>
@@ -134,39 +158,13 @@
       return res;
     }
 
-    // Génère les créneaux de 08h00 à 18h30 par pas de 30 min
-    function buildTimeSlots() {
-      const select = document.getElementById('modal-time-start');
-      select.innerHTML = '';
-      for (let h = 8; h <= 18; h++) {
-        for (let m of [0, 30]) {
-          const hh = String(h).padStart(2, '0');
-          const mm = String(m).padStart(2, '0');
-          const val = `${hh}:${mm}`;
-          const opt = document.createElement('option');
-          opt.value = val;
-          opt.textContent = `${hh} h ${mm}`;
-          select.appendChild(opt);
-        }
-      }
+    function toggleNewActivity(val) {
+      const isNew = val === '__NEW__';
+      document.getElementById('group-new-activite').style.display = isNew ? 'block' : 'none';
+      if (isNew) document.getElementById('new-activite-nom').focus();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      buildTimeSlots();
-
-      // Gestion de l'affichage du champ "Nouvelle activité"
-      const actSelect = document.getElementById('modal-activite');
-      actSelect.addEventListener('change', function() {
-        const isNew = this.value === '__NEW__';
-        document.getElementById('group-new-activite').style.display = isNew ? 'block' : 'none';
-        if (isNew) document.getElementById('new-activite-nom').focus();
-      });
-
-      // Décocher l'élève si une classe est sélectionnée
-      document.getElementById('modal-classe').addEventListener('change', function() {
-        if (this.value) document.getElementById('modal-eleve').value = "";
-      });
-
       calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         locale: 'fr',
         initialView: 'timeGridWeek',
@@ -216,31 +214,14 @@
       });
     });
 
-    // Remplit la liste déroulante avec TOUTES les activités déjà utilisées dans Seances et Type_Activites
-    async function populateActivityList() {
-      const distinctNames = new Set();
-
-      // 1. Activités déjà saisies dans la table Seances
+    function populateActivityList() {
+      const distinctNames = new Set(['Sport', 'Entretien santé', 'Cinéma']);
       rawSeances.forEach(r => {
         if (r.Titre && r.Titre.trim() !== '') distinctNames.add(r.Titre.trim());
       });
 
-      // 2. Activités déclarées dans Type_Activites
-      try {
-        const acts = await grist.docApi.fetchTable('Type_Activites');
-        for (let key in acts) {
-          if (Array.isArray(acts[key])) {
-            acts[key].forEach(val => {
-              if (typeof val === 'string' && val.trim() !== '' && key !== 'id') {
-                distinctNames.add(val.trim());
-              }
-            });
-          }
-        }
-      } catch (e) {}
-
       const actSelect = document.getElementById('modal-activite');
-      const currentSelected = actSelect.value;
+      const cur = actSelect.value;
       actSelect.innerHTML = '<option value="">-- Choisir une activité --</option><option value="__NEW__">➕ Créer une nouvelle activité...</option>';
 
       Array.from(distinctNames).sort().forEach(name => {
@@ -250,18 +231,17 @@
         actSelect.appendChild(opt);
       });
 
-      if (currentSelected) actSelect.value = currentSelected;
+      if (cur) actSelect.value = cur;
     }
 
     async function loadReferences() {
       try {
-        // Vacances et jours fériés
         const off = await grist.docApi.fetchTable('Calendrier_Officiel');
         officialEvents = [];
         for (let i = 0; i < off.id.length; i++) {
           const deb = fromGristDate(off.Date_Debut[i]);
           const fin = fromGristDate(off.Date_Fin[i]) || deb;
-          const nom = off.Nom ? off.Nom[i] : 'Fermeture';
+          const nom = off.Nom[i] || 'Fermeture';
           const type = off.Type ? off.Type[i] : '';
           const isVac = (type === 'Vacances scolaires' || type === 'Vacances');
 
@@ -284,7 +264,6 @@
           }
         }
 
-        // Liste des élèves et classes
         const elvs = await grist.docApi.fetchTable('Eleves');
         elevesList = [];
         const classesSet = new Set();
@@ -314,7 +293,7 @@
 
         refreshCalendar();
       } catch (e) {
-        console.warn("Accès docApi restreint :", e);
+        console.warn("Erreur chargement références :", e);
       }
     }
 
@@ -339,135 +318,5 @@
       calendar.addEventSource(seanceEvents);
     }
 
-    function roundTo30(timeStr) {
-      const [h, m] = timeStr.split(':').map(Number);
-      const roundedM = m < 30 ? '00' : '30';
-      return `${String(h).padStart(2, '0')}:${roundedM}`;
-    }
-
-    function openCreateModal(info) {
-      document.getElementById('edit-id').value = "";
-      document.getElementById('modal-title').textContent = "Programmer une séance";
-      document.getElementById('modal-activite').value = "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('new-activite-nom').value = "";
-      document.getElementById('modal-lieu').value = "UJPE";
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('modal-eleve').value = "";
-      document.getElementById('btn-delete').style.display = 'none';
-
-      selectedDateStr = info.startStr.split('T')[0];
-      const rawTime = info.startStr.split('T')[1].substring(0, 5);
-      document.getElementById('modal-time-start').value = roundTo30(rawTime);
-
-      const diffMin = Math.round((info.end - info.start) / 60000);
-      const dureeSelect = document.getElementById('modal-duree');
-      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function openEditModal(rowId) {
-      const record = rawSeances.find(r => String(r.id) === String(rowId));
-      if (!record) return;
-
-      document.getElementById('edit-id').value = rowId;
-      document.getElementById('modal-title').textContent = "Modifier la séance";
-      document.getElementById('btn-delete').style.display = 'block';
-
-      const d = fromGristDate(record.Debut);
-      const f = fromGristDate(record.Fin);
-      selectedDateStr = d.toISOString().split('T')[0];
-
-      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      document.getElementById('modal-time-start').value = roundTo30(timeStr);
-
-      const diffMin = Math.round((f - d) / 60000);
-      document.getElementById('modal-duree').value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-activite').value = record.Titre || "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('modal-eleve').value = "";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').style.display = 'none';
-    }
-
-    async function saveSession() {
-      let titre = document.getElementById('modal-activite').value;
-      if (titre === '__NEW__') {
-        titre = document.getElementById('new-activite-nom').value.trim();
-        if (!titre) { alert("Veuillez saisir un nom d'activité."); return; }
-        try {
-          await grist.docApi.applyUserActions([
-            ['AddRecord', 'Type_Activites', null, { Nom: titre }]
-          ]);
-        } catch (e) {}
-      }
-      if (!titre) { alert("Veuillez choisir ou saisir une activité."); return; }
-
-      const lieu = document.getElementById('modal-lieu').value;
-      const tStart = document.getElementById('modal-time-start').value;
-      const dureeMin = parseInt(document.getElementById('modal-duree').value, 10);
-
-      const debDate = new Date(selectedDateStr + 'T' + tStart + ':00');
-      const finDate = new Date(debDate.getTime() + dureeMin * 60000);
-
-      const editId = document.getElementById('edit-id').value;
-      let seanceId = editId ? parseInt(editId) : null;
-
-      if (seanceId) {
-        await grist.selectedTable.update({
-          id: seanceId,
-          fields: { Titre: titre, Lieu: lieu, Debut: toGristSec(debDate), Fin: toGristSec(finDate) }
-        });
-      } else {
-        const res = await grist.selectedTable.create({
-          fields: { Titre: titre, Lieu: lieu, Debut: toGristSec(debDate), Fin: toGristSec(finDate) }
-        });
-        seanceId = res.id;
-      }
-
-      const classe = document.getElementById('modal-classe').value;
-      const eleveId = document.getElementById('modal-eleve').value;
-
-      if (classe) {
-        const inscrits = elevesList.filter(e => e.classe === classe);
-        const actions = inscrits.map(e => ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: e.id }]);
-        if (actions.length) await grist.docApi.applyUserActions(actions);
-      } else if (eleveId) {
-        await grist.docApi.applyUserActions([
-          ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: parseInt(eleveId) }]
-        ]);
-      }
-
-      closeModal();
-      populateActivityList();
-    }
-
-    async function deleteSession() {
-      const editId = document.getElementById('edit-id').value;
-      if (!editId) return;
-      if (confirm("Supprimer cette séance ?")) {
-        await grist.selectedTable.destroy([parseInt(editId)]);
-        closeModal();
-      }
-    }
-
-    function updateTimes(event) {
-      grist.selectedTable.update({
-        id: parseInt(event.id),
-        fields: {
-          Debut: toGristSec(event.start),
-          Fin: toGristSec(event.end)
-        }
-      });
-    }
-  </script>
-</body>
-</html>
+    function snapToSlot(timeStr) {
+      const [h, m] =
