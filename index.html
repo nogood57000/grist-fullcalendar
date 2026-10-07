@@ -111,19 +111,35 @@
         ]
       });
 
+   // Fonction pour convertir la date Grist (secondes ou chaîne) en date exploitable
+      function parseGristDate(val) {
+        if (!val) return null;
+        if (typeof val === 'number') {
+          // Grist envoie des secondes : on multiplie par 1000 pour obtenir des millisecondes
+          return new Date(val * 1000);
+        }
+        return val;
+      }
+
       // Synchronisation lorsque les données changent dans Grist
       grist.onRecords(function(records, mappings) {
         currentRecords = records;
         calendar.removeAllEvents();
 
         const events = records.map(r => {
+          // Utilise le mapping officiel ou le nom direct de la colonne
+          const row = grist.mapColumnNames ? grist.mapColumnNames(r) : r;
+          const debut = row ? (row.Debut || r.Debut) : r.Debut;
+          const fin = row ? (row.Fin || r.Fin) : r.Fin;
+          const titre = row ? (row.Titre || r.Titre) : r.Titre;
+
           return {
-            id: r.id,
-            title: r.Titre || 'Sans titre',
-            start: r.Debut,
-            end: r.Fin,
-            backgroundColor: '#2b579a',
-            borderColor: '#1e3d6b'
+            id: String(r.id),
+            title: titre || 'Sans titre',
+            start: parseGristDate(debut),
+            end: parseGristDate(fin),
+            backgroundColor: '#1f4e79',
+            borderColor: '#163857'
           };
         }).filter(e => e.start && e.end);
 
