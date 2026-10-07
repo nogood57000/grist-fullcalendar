@@ -13,11 +13,11 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       height: 100vh;
       overflow: hidden;
-      background: #fff;
+      background: #ffffff;
     }
     #calendar {
       height: 100vh;
-      padding: 8px;
+      padding: 6px;
       box-sizing: border-box;
     }
     .fc-event {
@@ -25,14 +25,23 @@
       border-radius: 4px;
       padding: 2px 4px;
     }
-    .bg-vacances {
-      background-color: rgba(255, 193, 7, 0.22) !important;
-    }
-    .bg-ferie {
-      background-color: rgba(220, 53, 69, 0.18) !important;
+
+    /* 1. Fond distinct pour le Samedi et le Dimanche */
+    .fc-day-sat, .fc-day-sun {
+      background-color: #f1f3f5 !important;
     }
 
-    /* Fenêtre modale de programmation */
+    /* 2. Fonds pour les vacances et les jours fériés */
+    .bg-vacances {
+      background-color: #fff8e1 !important;
+      opacity: 0.8;
+    }
+    .bg-ferie {
+      background-color: #fde8e8 !important;
+      opacity: 0.8;
+    }
+
+    /* Fenêtre modale de saisie */
     #modal-overlay {
       display: none;
       position: fixed;
@@ -48,7 +57,7 @@
       width: 440px;
       max-width: 90vw;
       padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
     }
     .modal-box h3 {
       margin-top: 0;
@@ -63,12 +72,12 @@
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 4px;
-      color: #333;
+      color: #333333;
     }
     .form-group input, .form-group select {
       width: 100%;
       padding: 7px;
-      border: 1px solid #ccc;
+      border: 1px solid #cccccc;
       border-radius: 4px;
       box-sizing: border-box;
       font-size: 13px;
@@ -79,7 +88,7 @@
       align-items: center;
       margin-top: 18px;
       padding-top: 12px;
-      border-top: 1px solid #eee;
+      border-top: 1px solid #eeeeee;
     }
     .btn {
       padding: 7px 14px;
@@ -89,31 +98,31 @@
       font-weight: 600;
       font-size: 13px;
     }
-    .btn-primary { background: #1f4e79; color: #fff; }
-    .btn-secondary { background: #e0e0e0; color: #333; }
-    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-primary { background: #1f4e79; color: #ffffff; }
+    .btn-secondary { background: #e0e0e0; color: #333333; }
+    .btn-danger { background: #dc3545; color: #ffffff; }
   </style>
 </head>
 <body>
   <div id="calendar"></div>
 
-  <!-- Pop-up de saisie / modification -->
+  <!-- Interface modale de création / modification -->
   <div id="modal-overlay">
     <div class="modal-box">
       <h3 id="modal-title">Programmer une séance</h3>
       <input type="hidden" id="edit-id" />
       
       <div class="form-group">
-        <label>Activité</label>
+        <label>Activité / Entretien / Bilan</label>
         <select id="modal-activite" onchange="checkNewActivity(this.value)">
-          <option value="">-- Sélectionner une activité --</option>
+          <option value="">-- Choisir une activité --</option>
           <option value="__NEW__">➕ Créer une nouvelle activité...</option>
         </select>
       </div>
 
       <div class="form-group" id="group-new-activite" style="display:none;">
         <label>Nom de la nouvelle activité</label>
-        <input type="text" id="new-activite-nom" placeholder="Ex: Atelier Écriture" />
+        <input type="text" id="new-activite-nom" placeholder="Ex: Atelier Remobilisation" />
       </div>
 
       <div class="form-group">
@@ -137,21 +146,21 @@
       </div>
 
       <div class="form-group">
-        <label>Affecter un groupe (Classe)</label>
+        <label>Positionner un groupe (Classe entière)</label>
         <select id="modal-classe" onchange="onClasseSelected(this.value)">
           <option value="">-- Aucun groupe automatique --</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Élève individuel</label>
+        <label>Ou positionner un élève individuel</label>
         <select id="modal-eleve">
-          <option value="">-- Aucun élève individuel --</option>
+          <option value="">-- Aucun élève --</option>
         </select>
       </div>
 
       <div class="modal-actions">
-        <button id="btn-delete" class="btn btn-danger" style="display:none;" onclick="deleteSession()">Supprimer</button>
+        <button id="btn-delete" class="btn btn-danger" style="display:none;" onclick="deleteSession()">Supprimer la séance</button>
         <div style="display:flex; gap:8px; margin-left:auto;">
           <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
           <button class="btn btn-primary" onclick="saveSession()">Enregistrer</button>
@@ -204,19 +213,18 @@
         editable: true,
         selectable: true,
 
-        // Clic sur créneau vide -> ouverture formulaire
+        // Clic sur un créneau libre
         select: function(info) {
           openCreateModal(info);
           calendar.unselect();
         },
 
-        // Clic sur une séance existante -> modification/suppression
+        // Clic sur une séance
         eventClick: function(info) {
           if (info.event.display === 'background' || String(info.event.id).startsWith('off_')) return;
           openEditModal(info.event.id);
         },
 
-        // Glisser-déposer / redimensionnement direct
         eventDrop: function(info) { updateTimes(info.event); },
         eventResize: function(info) { updateTimes(info.event); }
       });
@@ -232,10 +240,8 @@
         ]
       });
 
-      // Chargement des données de référence
       loadReferences();
 
-      // Écoute des mises à jour de la table SEANCES
       grist.onRecords(function(records) {
         rawSeances = records;
         refreshCalendar();
@@ -244,7 +250,6 @@
 
     async function loadReferences() {
       try {
-        // 1. Vacances et Jours fériés
         const off = await grist.docApi.fetchTable('Calendrier_Officiel');
         officialEvents = [];
         for (let i = 0; i < off.id.length; i++) {
@@ -256,6 +261,7 @@
 
           if (deb) {
             const finInclusive = addDays(fin, 1);
+            // 1. Fond coloré sur toute la période
             officialEvents.push({
               id: 'off_bg_' + off.id[i],
               start: deb,
@@ -264,25 +270,28 @@
               display: 'background',
               className: isVac ? 'bg-vacances' : 'bg-ferie'
             });
+
+            // 2. Mention texte uniquement sur le premier jour
+            const debutFinJour1 = addDays(deb, 1);
             officialEvents.push({
               id: 'off_lbl_' + off.id[i],
               title: (isVac ? '🏖️ ' : '🔴 ') + nom,
               start: deb,
-              end: finInclusive,
+              end: debutFinJour1,
               allDay: true,
               editable: false,
               backgroundColor: isVac ? '#fff3cd' : '#f8d7da',
-              textColor: '#333',
+              textColor: '#333333',
               borderColor: isVac ? '#ffeeba' : '#f5c6cb'
             });
           }
         }
 
-        // 2. Types d'activités
+        // Activités
         const acts = await grist.docApi.fetchTable('Type_Activites');
         activitesList = [];
         const actSelect = document.getElementById('modal-activite');
-        actSelect.innerHTML = '<option value="">-- Sélectionner une activité --</option><option value="__NEW__">➕ Créer une nouvelle activité...</option>';
+        actSelect.innerHTML = '<option value="">-- Choisir une activité --</option><option value="__NEW__">➕ Créer une nouvelle activité...</option>';
         for (let i = 0; i < acts.id.length; i++) {
           const nom = acts.Nom ? acts.Nom[i] : (acts.Titre ? acts.Titre[i] : ('Activité ' + acts.id[i]));
           activitesList.push({ id: acts.id[i], nom: nom });
@@ -292,12 +301,12 @@
           actSelect.appendChild(opt);
         }
 
-        // 3. Élèves et classes
+        // Élèves et classes
         const elvs = await grist.docApi.fetchTable('Eleves');
         elevesList = [];
         const classesSet = new Set();
         const eleveSelect = document.getElementById('modal-eleve');
-        eleveSelect.innerHTML = '<option value="">-- Aucun élève individuel --</option>';
+        eleveSelect.innerHTML = '<option value="">-- Aucun élève --</option>';
         
         for (let i = 0; i < elvs.id.length; i++) {
           const init = elvs.Initiales ? elvs.Initiales[i] : (elvs.Prenom[i] + ' ' + elvs.Nom[i]);
@@ -322,7 +331,7 @@
 
         refreshCalendar();
       } catch (e) {
-        console.warn("Erreur lors du chargement des tables annexes :", e);
+        console.warn("Vérifiez l'accès complet au document dans Grist :", e);
       }
     }
 
@@ -408,7 +417,6 @@
       if (titre === '__NEW__') {
         titre = document.getElementById('new-activite-nom').value.trim();
         if (!titre) { alert("Veuillez saisir un nom d'activité."); return; }
-        // Sauvegarde de la nouvelle activité dans le catalogue
         await grist.docApi.applyUserActions([
           ['AddRecord', 'Type_Activites', null, { Nom: titre }]
         ]);
@@ -437,7 +445,6 @@
         seanceId = res.id;
       }
 
-      // Positionnement des élèves / de la classe
       const classe = document.getElementById('modal-classe').value;
       const eleveId = document.getElementById('modal-eleve').value;
 
