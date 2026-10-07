@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Emploi du temps Grist</title>
+  <!-- FullCalendar 6 & Styles -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <!-- Fichier de langue française pour FullCalendar -->
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/fr.global.min.js"></script>
+  <!-- Grist Plugin API -->
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      box-sizing: border-box;
+      background: #ffffff;
+    }
+    #calendar {
+      height: 100%;
+    }
+    /* Personnalisation visuelle légère */
+    .fc-event {
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="calendar"></div>
+
+  <script>
+    let calendar;
+    let currentRecords = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const calendarEl = document.getElementById('calendar');
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'fr',
+        initialView: 'timeGridWeek',
+        firstDay: 1, // Semaine débutant le lundi
+        slotMinTime: '08:00:00', // Début de la grille à 8h
+        slotMaxTime: '19:00:00', // Fin à 19h
+        slotDuration: '00:30:00',
+        allDaySlot: false,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay'
+        },
+        buttonText: {
+          today: "Aujourd'hui",
+          week: 'Semaine',
+          day: 'Jour'
+        },
+        editable: true, // Permet d'étirer et déplacer les blocs
+        selectable: true, // Permet de sélectionner une plage horaire
+
+        // Clic sur un créneau vide pour créer une séance
+        select: function(info) {
+          const titre = prompt("Titre de la nouvelle activité / entretien :");
+          if (titre) {
+            grist.selectedTable.create({
+              fields: {
+                Titre: titre,
+                Debut: info.startStr,
+                Fin: info.endStr
+              }
+            });
+          }
+          calendar.unselect();
+        },
+
+        // Déplacement ou redimensionnement d'un bloc (ex: étirer d'1h à 3h)
+        eventResize: function(info) {
+          updateGristEvent(info.event);
+        },
+        eventDrop: function(info) {
+          updateGristEvent(info.event);
+        },
+
+        // Sélection d'une séance au clic pour synchroniser la fiche Grist
+        eventClick: function(info) {
+          grist.setCursorPos({ rowId: parseInt(info.event.id) });
+        }
+      });
+
+      calendar.render();
+
+      function updateGristEvent(event) {
+        grist.selectedTable.update({
+          id: parseInt(event.id),
+          fields: {
+            Debut: event.startStr,
+            Fin: event.endStr
+          }
+        });
+      }
+
+      // Initialisation de la communication avec Grist
+      grist.ready({
+        requiredAccess: 'full',
+        columns: [
+          { name: 'Debut', title: 'Début (DateTime)' },
+          { name: 'Fin', title: 'Fin (DateTime)' },
+          { name: 'Titre', title: 'Titre' }
+        ]
+      });
+
+      // Synchronisation lorsque les données changent dans Grist
+      grist.onRecords(function(records, mappings) {
+        currentRecords = records;
+        calendar.removeAllEvents();
+
+        const events = records.map(r => {
+          return {
+            id: r.id,
+            title: r.Titre || 'Sans titre',
+            start: r.Debut,
+            end: r.Fin,
+            backgroundColor: '#2b579a',
+            borderColor: '#1e3d6b'
+          };
+        }).filter(e => e.start && e.end);
+
+        calendar.addEventSource(events);
+      });
+    });
+  </script>
+</body>
+</html>
