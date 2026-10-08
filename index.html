@@ -7,21 +7,20 @@
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/fr.global.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
+    * { box-sizing: border-box; }
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100vh;
+      overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
       background: #ffffff;
     }
     #top-bar {
-      flex: 0 0 auto;
+      height: 48px;
       display: flex;
       gap: 12px;
       align-items: center;
-      padding: 6px 12px;
+      padding: 0 12px;
       background: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
     }
@@ -34,21 +33,20 @@
       color: #333333;
     }
     .filter-item select {
-      padding: 4px 8px;
+      padding: 5px 8px;
       border: 1px solid #ced4da;
       border-radius: 4px;
       font-size: 13px;
       background: #ffffff;
     }
     #calendar-container {
-      flex: 1 1 auto;
-      min-height: 0;
+      height: calc(100vh - 48px);
+      width: 100%;
       padding: 6px;
-      box-sizing: border-box;
-      position: relative;
     }
     #calendar {
       height: 100%;
+      width: 100%;
     }
     .fc-event {
       cursor: pointer;
@@ -82,7 +80,7 @@
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #333333; }
     .form-group input, .form-group select {
-      width: 100%; padding: 7px; border: 1px solid #cccccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; background: #fff;
+      width: 100%; padding: 7px; border: 1px solid #cccccc; border-radius: 4px; font-size: 13px; background: #fff;
     }
     .modal-actions {
       display: flex; justify-content: space-between; align-items: center;
@@ -97,7 +95,7 @@
     @media print {
       @page { size: A4 landscape; margin: 8mm; }
       #top-bar, .fc-header-toolbar, #modal-overlay { display: none !important; }
-      body, html { height: auto !important; background: #ffffff !important; }
+      body, html { height: auto !important; overflow: visible !important; }
       #calendar-container { height: auto !important; padding: 0 !important; }
       .fc-scroller { overflow: visible !important; height: auto !important; }
     }
@@ -126,7 +124,7 @@
     <div id="calendar"></div>
   </div>
 
-  <!-- Boîte de dialogue de saisie -->
+  <!-- Modale -->
   <div id="modal-overlay">
     <div class="modal-box">
       <h3 id="modal-title">Programmer une séance</h3>
@@ -228,7 +226,7 @@
   </div>
 
   <script>
-    let calendar;
+    let calendar = null;
     let rawSeances = [];
     let officialEvents = [];
     let elevesList = [];
@@ -256,6 +254,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       const calendarEl = document.getElementById('calendar');
 
+      // Création et rendu immédiat du calendrier
       calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'fr',
         initialView: 'timeGridWeek',
@@ -288,27 +287,22 @@
 
       calendar.render();
 
-      grist.ready({
-        requiredAccess: 'full',
-        columns: [
-          { name: 'Debut', title: 'Début' },
-          { name: 'Fin', title: 'Fin' },
-          { name: 'Titre', title: 'Titre' }
-        ]
-      });
+      // Initialisation Grist
+      grist.ready({ requiredAccess: 'full' });
 
-      loadReferences();
-
+      // Écoute de la table courante
       grist.onRecords(function(records) {
         rawSeances = records || [];
         populateActivityList();
-        loadInscriptionsAndRefresh();
+        refreshCalendar();
       });
+
+      // Chargement en arrière-plan des autres tables
+      loadReferences();
     });
 
     async function loadReferences() {
       try {
-        // Calendrier officiel
         const off = await grist.docApi.fetchTable('Calendrier_Officiel');
         officialEvents = [];
         if (off && off.id) {
@@ -338,8 +332,11 @@
             }
           }
         }
+      } catch (e) {
+        console.warn("Calendrier_Officiel non chargé :", e);
+      }
 
-        // Référents
+      try {
         const refs = await grist.docApi.fetchTable('Referents');
         referentsList = [];
         const refSelect = document.getElementById('modal-referent');
@@ -354,8 +351,11 @@
             refSelect.appendChild(opt);
           }
         }
+      } catch (e) {
+        console.warn("Referents non chargés :", e);
+      }
 
-        // Élèves et classes
+      try {
         const elvs = await grist.docApi.fetchTable('Eleves');
         elevesList = [];
         const classesSet = new Set();
@@ -399,14 +399,10 @@
           optF.textContent = c;
           filterClasse.appendChild(optF);
         });
-
       } catch (e) {
-        console.warn("Table de référence non chargée :", e);
+        console.warn("Eleves non chargés :", e);
       }
-      refreshCalendar();
-    }
 
-    async function loadInscriptionsAndRefresh() {
       try {
         const insc = await grist.docApi.fetchTable('Inscriptions');
         inscriptionsList = [];
@@ -419,6 +415,7 @@
           }
         }
       } catch (e) {}
+
       refreshCalendar();
     }
 
@@ -448,13 +445,12 @@
     function refreshCalendar() {
       if (!calendar) return;
       calendar.removeAllEvents();
-      calendar.addEventSource(officialEvents);
+      if (officialEvents.length) calendar.addEventSource(officialEvents);
 
       const fClasse = document.getElementById('filter-classe').value;
       const fEleveId = document.getElementById('filter-eleve').value ? parseInt(document.getElementById('filter-eleve').value, 10) : null;
 
       const seanceEvents = rawSeances.map(r => {
-        const row = grist.mapColumnNames ? grist.mapColumnNames(r) : r;
         const seanceId = r.id;
 
         if (fEleveId) {
@@ -473,13 +469,13 @@
           if (foundRef) refNom = ` - ${foundRef.prenom}`;
         }
 
-        const d = fromGristDate(row.Debut || r.Debut);
-        const f = fromGristDate(row.Fin || r.Fin);
+        const d = fromGristDate(r.Debut);
+        const f = fromGristDate(r.Fin);
         const lieu = r.Lieu ? ` [${r.Lieu}]` : '';
 
         return {
           id: String(r.id),
-          title: `${row.Titre || r.Titre || 'Séance'}${lieu}${refNom}`,
+          title: `${r.Titre || 'Séance'}${lieu}${refNom}`,
           start: d,
           end: f,
           backgroundColor: '#1f4e79',
@@ -615,7 +611,7 @@
         }
 
         closeModal();
-        loadInscriptionsAndRefresh();
+        loadReferences();
       } catch (err) {
         alert("Erreur lors de l'enregistrement : " + (err.message || err));
       }
