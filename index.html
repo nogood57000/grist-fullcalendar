@@ -47,11 +47,11 @@
       box-sizing: border-box;
     }
 
-    /* Style des cartes séances */
+    /* Style épuré des cartes de séance */
     .fc-event {
       cursor: pointer;
       border-radius: 5px;
-      padding: 3px 5px;
+      padding: 4px 6px;
       border-width: 1px;
       border-style: solid;
       box-shadow: 0 1px 3px rgba(0,0,0,0.12);
@@ -59,23 +59,32 @@
     .event-card {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
       line-height: 1.25;
+      overflow: hidden;
     }
     .event-title {
       font-weight: 700;
       font-size: 12px;
+      letter-spacing: 0.2px;
+      text-transform: capitalize;
     }
     .event-meta {
-      font-size: 10.5px;
+      font-size: 11px;
       opacity: 0.95;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .event-eleves {
       font-size: 10px;
       font-weight: 600;
       margin-top: 2px;
-      padding-top: 2px;
+      padding-top: 3px;
       border-top: 1px dashed rgba(255,255,255,0.4);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Week-end, fériés et vacances */
@@ -256,15 +265,14 @@
     let inscriptionsList = [];
     let selectedDateStr = "";
 
-    // Palette de couleurs distinctes par classe
     const CLASS_COLORS = [
-      { bg: '#1f4e79', border: '#163857' }, // Bleu foncé (défaut)
-      { bg: '#2b8a3e', border: '#237032' }, // Vert
-      { bg: '#d9480f', border: '#b83b0a' }, // Orange rouille
-      { bg: '#6741d9', border: '#5333b2' }, // Violet
-      { bg: '#0b7285', border: '#085867' }, // Sarcelle / Bleu canard
-      { bg: '#a61e4d', border: '#86183e' }, // Framboise
-      { bg: '#e67700', border: '#bf6300' }  // Ambre
+      { bg: '#1f4e79', border: '#163857' },
+      { bg: '#2b8a3e', border: '#237032' },
+      { bg: '#d9480f', border: '#b83b0a' },
+      { bg: '#6741d9', border: '#5333b2' },
+      { bg: '#0b7285', border: '#085867' },
+      { bg: '#a61e4d', border: '#86183e' },
+      { bg: '#e67700', border: '#bf6300' }
     ];
     const classColorMap = new Map();
 
@@ -304,7 +312,8 @@
         slotMinTime: '08:00:00',
         slotMaxTime: '18:30:00',
         slotDuration: '00:30:00',
-        allDaySlot: false, // 1. SUPPRESSION DE LA LIGNE "TOUTE LA JOURNÉE"
+        allDaySlot: false,
+        displayEventTime: false, // Ne pas afficher l'horaire par défaut
         height: '100%',
         headerToolbar: {
           left: 'prev,next today',
@@ -315,13 +324,13 @@
         editable: true,
         selectable: true,
 
-        // Affichage riche personnalisé sur chaque bloc de séance
+        // Affichage épuré : Titre en haut, puis métadonnées (lieu, référent), puis élèves
         eventContent: function(arg) {
           if (arg.event.display === 'background') return null;
           const p = arg.event.extendedProps || {};
 
           let html = `<div class="event-card">`;
-          html += `<div class="event-title">${arg.timeText ? arg.timeText + ' ' : ''}${arg.event.title}</div>`;
+          html += `<div class="event-title">${arg.event.title}</div>`;
 
           let meta = [];
           if (p.lieu) meta.push(`📍 ${p.lieu}`);
@@ -364,6 +373,26 @@
       });
     });
 
+    // Extraction robuste du référent (gère [ 'L', id ], id entier, ou texte brut)
+    function resolveReferentName(refField) {
+      if (!refField) return '';
+      let targetId = null;
+      if (Array.isArray(refField)) {
+        targetId = refField.find(x => typeof x === 'number');
+      } else if (typeof refField === 'number') {
+        targetId = refField;
+      } else if (typeof refField === 'string') {
+        const found = referentsList.find(r => r.prenom.toLowerCase() === refField.toLowerCase());
+        return found ? found.prenom : refField;
+      }
+
+      if (targetId) {
+        const found = referentsList.find(r => r.id === targetId);
+        if (found) return found.prenom;
+      }
+      return '';
+    }
+
     async function loadReferences() {
       try {
         const off = await grist.docApi.fetchTable('Calendrier_Officiel');
@@ -397,7 +426,7 @@
         refSelect.innerHTML = '<option value="">-- Aucun --</option>';
         if (refs && refs.id) {
           for (let i = 0; i < refs.id.length; i++) {
-            const prenom = refs.Prenom ? refs.Prenom[i] : ('Réf ' + refs.id[i]);
+            const prenom = refs.Prenom ? refs.Prenom[i] : (refs.Nom ? refs.Nom[i] : ('Réf ' + refs.id[i]));
             referentsList.push({ id: refs.id[i], prenom: prenom });
             const opt = document.createElement('option');
             opt.value = refs.id[i];
@@ -443,7 +472,7 @@
         filterClasse.innerHTML = '<option value="">Toutes les classes</option>';
 
         Array.from(classesSet).sort().forEach(c => {
-          getClassColor(c); // Associe une couleur stable à chaque classe
+          getClassColor(c);
           const opt = document.createElement('option');
           opt.value = c;
           opt.textContent = 'Toute la classe ' + c;
@@ -508,13 +537,11 @@
         const row = grist.mapColumnNames ? grist.mapColumnNames(r) : r;
         const seanceId = r.id;
 
-        // Identification des élèves inscrits à cette séance
         const elevesInscrits = inscriptionsList
           .filter(i => i.seanceId === seanceId)
           .map(i => elevesList.find(e => e.id === i.eleveId))
           .filter(Boolean);
 
-        // Filtrage
         if (fEleveId) {
           const hasEleve = elevesInscrits.some(e => e.id === fEleveId);
           if (!hasEleve) return null;
@@ -523,17 +550,11 @@
           if (!hasClasse) return null;
         }
 
-        // Récupération de la classe principale pour la couleur
         const classePrincipale = elevesInscrits.length > 0 ? elevesInscrits[0].classe : '';
         const themeColor = getClassColor(classePrincipale);
 
-        // Référent
-        let refPrenom = '';
-        if (r.Referents) {
-          const refId = Array.isArray(r.Referents) ? (r.Referents[1] || r.Referents[0]) : r.Referents;
-          const foundRef = referentsList.find(ref => ref.id === refId);
-          if (foundRef) refPrenom = foundRef.prenom;
-        }
+        // Résolution du prénom du référent
+        const refPrenom = resolveReferentName(r.Referents || row.Referents);
 
         const d = fromGristDate(row.Debut || r.Debut);
         const f = fromGristDate(row.Fin || r.Fin);
@@ -548,7 +569,7 @@
           borderColor: themeColor.border,
           textColor: '#ffffff',
           extendedProps: {
-            lieu: r.Lieu || '',
+            lieu: r.Lieu || row.Lieu || '',
             referent: refPrenom,
             classe: classePrincipale,
             eleves: initialesStr
@@ -615,12 +636,15 @@
       document.getElementById('group-new-activite').style.display = 'none';
       document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
 
-      if (record.Referents) {
-        const refId = Array.isArray(record.Referents) ? (record.Referents[1] || record.Referents[0]) : record.Referents;
-        document.getElementById('modal-referent').value = refId || "";
-      } else {
-        document.getElementById('modal-referent').value = "";
+      // Pré-sélection du référent existant
+      const refField = record.Referents;
+      let targetRefId = "";
+      if (Array.isArray(refField)) {
+        targetRefId = refField.find(x => typeof x === 'number') || "";
+      } else if (typeof refField === 'number') {
+        targetRefId = refField;
       }
+      document.getElementById('modal-referent').value = targetRefId;
 
       document.getElementById('modal-classe').value = "";
       document.getElementById('modal-eleve').value = "";
@@ -659,7 +683,12 @@
           Debut: toGristSec(debDate),
           Fin: toGristSec(finDate)
         };
-        if (refId) payload.Referents = ['L', refId];
+        // Formatage pour champ ReferenceList ou Reference Grist
+        if (refId) {
+          payload.Referents = ['L', refId];
+        } else {
+          payload.Referents = null;
+        }
 
         if (seanceId) {
           await grist.selectedTable.update({ id: seanceId, fields: payload });
