@@ -47,11 +47,11 @@
       box-sizing: border-box;
     }
 
-    /* Style épuré des cartes de séance */
+    /* Cartes séances */
     .fc-event {
       cursor: pointer;
       border-radius: 5px;
-      padding: 4px 6px;
+      padding: 3px 5px;
       border-width: 1px;
       border-style: solid;
       box-shadow: 0 1px 3px rgba(0,0,0,0.12);
@@ -59,28 +59,35 @@
     .event-card {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
       line-height: 1.25;
       overflow: hidden;
     }
     .event-title {
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11.5px;
       letter-spacing: 0.2px;
       text-transform: capitalize;
     }
     .event-meta {
-      font-size: 11px;
+      font-size: 10px;
       opacity: 0.95;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .badge-referent {
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.25);
+      padding: 1px 4px;
+      border-radius: 3px;
+      display: inline-block;
+    }
     .event-eleves {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 600;
-      margin-top: 2px;
-      padding-top: 3px;
+      margin-top: 1px;
+      padding-top: 2px;
       border-top: 1px dashed rgba(255,255,255,0.4);
       white-space: nowrap;
       overflow: hidden;
@@ -91,6 +98,28 @@
     .fc-day-sat, .fc-day-sun { background-color: #f1f3f5 !important; }
     .bg-vacances { background-color: #fff8e1 !important; opacity: 0.8; }
     .bg-ferie { background-color: #fde8e8 !important; opacity: 0.8; }
+
+    /* Bulle d'information détaillée (Tooltip) */
+    #event-tooltip {
+      position: absolute;
+      display: none;
+      z-index: 10000;
+      background: #212529;
+      color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+      max-width: 250px;
+    }
+    #event-tooltip b {
+      color: #fcc419;
+      display: block;
+      margin-bottom: 2px;
+      font-size: 12px;
+    }
 
     /* Modale */
     #modal-overlay {
@@ -125,12 +154,40 @@
     .btn-secondary { background: #e0e0e0; color: #333333; }
     .btn-danger { background: #dc3545; color: #ffffff; }
 
+    /* MISE EN PAGE IMPRESSION A4 PAYSAGE */
     @media print {
-      @page { size: A4 landscape; margin: 8mm; }
-      #top-bar, .fc-header-toolbar, #modal-overlay { display: none !important; }
-      body, html { height: auto !important; overflow: visible !important; }
-      #calendar { height: auto !important; }
-      .fc-scroller { overflow: visible !important; height: auto !important; }
+      @page {
+        size: A4 landscape;
+        margin: 5mm;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      #top-bar, .fc-header-toolbar, #modal-overlay, #event-tooltip {
+        display: none !important;
+      }
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      #calendar {
+        height: 185mm !important;
+        width: 100% !important;
+        padding: 0 !important;
+      }
+      .fc-view-harness, .fc-timegrid {
+        height: 185mm !important;
+      }
+      .fc-scroller {
+        overflow: visible !important;
+        height: auto !important;
+      }
+      .fc-timegrid-slots td {
+        height: 15px !important;
+      }
     }
   </style>
 </head>
@@ -149,13 +206,14 @@
       </select>
     </div>
     <div style="margin-left: auto;">
-      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimer A4</button>
+      <button class="btn btn-secondary" onclick="printCalendar()">🖨️ Imprimer A4</button>
     </div>
   </div>
 
   <div id="calendar"></div>
+  <div id="event-tooltip"></div>
 
-  <!-- Modale -->
+  <!-- Fenêtre modale -->
   <div id="modal-overlay">
     <div class="modal-box">
       <h3 id="modal-title">Programmer une séance</h3>
@@ -233,10 +291,16 @@
       </div>
 
       <div class="form-group">
-        <label>Affecter une classe entière</label>
-        <select id="modal-classe" onchange="if(this.value) document.getElementById('modal-eleve').value='';">
+        <label>Affecter un groupe (Classe)</label>
+        <select id="modal-classe" onchange="onModalClasseChange(this.value)">
           <option value="">-- Aucun groupe automatique --</option>
+          <option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>
         </select>
+      </div>
+
+      <div class="form-group" id="group-new-classe" style="display:none;">
+        <label>Nom de la nouvelle classe</label>
+        <input type="text" id="new-classe-nom" placeholder="Ex: Groupe Relais, 3e A..." />
       </div>
 
       <div class="form-group">
@@ -302,8 +366,26 @@
       if (isNew) document.getElementById('new-activite-nom').focus();
     }
 
+    function onModalClasseChange(val) {
+      const isNew = val === '__NEW_CLASSE__';
+      document.getElementById('group-new-classe').style.display = isNew ? 'block' : 'none';
+      if (isNew) {
+        document.getElementById('new-classe-nom').focus();
+      }
+      if (val) {
+        document.getElementById('modal-eleve').value = '';
+      }
+    }
+
+    function printCalendar() {
+      // Ajuste la vue pour l'impression A4
+      calendar.updateSize();
+      window.print();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       const calendarEl = document.getElementById('calendar');
+      const tooltip = document.getElementById('event-tooltip');
 
       calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'fr',
@@ -313,7 +395,7 @@
         slotMaxTime: '18:30:00',
         slotDuration: '00:30:00',
         allDaySlot: false,
-        displayEventTime: false, // Ne pas afficher l'horaire par défaut
+        displayEventTime: false,
         height: '100%',
         headerToolbar: {
           left: 'prev,next today',
@@ -324,7 +406,6 @@
         editable: true,
         selectable: true,
 
-        // Affichage épuré : Titre en haut, puis métadonnées (lieu, référent), puis élèves
         eventContent: function(arg) {
           if (arg.event.display === 'background') return null;
           const p = arg.event.extendedProps || {};
@@ -334,11 +415,9 @@
 
           let meta = [];
           if (p.lieu) meta.push(`📍 ${p.lieu}`);
-          if (p.referent) meta.push(`👤 ${p.referent}`);
+          if (p.referent) meta.push(`<span class="badge-referent">🎓 ${p.referent}</span>`);
           if (p.classe) meta.push(`🏷️ ${p.classe}`);
-          if (meta.length) {
-            html += `<div class="event-meta">${meta.join(' • ')}</div>`;
-          }
+          if (meta.length) html += `<div class="event-meta">${meta.join(' • ')}</div>`;
 
           if (p.eleves && p.eleves.length > 0) {
             html += `<div class="event-eleves">👥 ${p.eleves.join(', ')}</div>`;
@@ -348,12 +427,40 @@
           return { html: html };
         },
 
+        // Bulle d'informations détaillées au survol (Tooltip)
+        eventMouseEnter: function(info) {
+          if (info.event.display === 'background') return;
+          const p = info.event.extendedProps || {};
+          const startStr = info.event.start ? info.event.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+          const endStr = info.event.end ? info.event.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+          let content = `<b>${info.event.title}</b>`;
+          content += `⏰ ${startStr} - ${endStr}<br/>`;
+          if (p.lieu) content += `📍 Lieu : ${p.lieu}<br/>`;
+          if (p.referent) content += `🎓 Référent : ${p.referent}<br/>`;
+          if (p.classe) content += `🏷️ Classe : ${p.classe}<br/>`;
+          if (p.eleves && p.eleves.length > 0) {
+            content += `👥 Élèves inscrits : ${p.eleves.join(', ')}`;
+          }
+
+          tooltip.innerHTML = content;
+          tooltip.style.display = 'block';
+
+          const rect = info.el.getBoundingClientRect();
+          tooltip.style.left = (rect.left + 10) + 'px';
+          tooltip.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+        },
+        eventMouseLeave: function() {
+          tooltip.style.display = 'none';
+        },
+
         select: function(info) {
           openCreateModal(info);
           calendar.unselect();
         },
         eventClick: function(info) {
           if (info.event.display === 'background' || String(info.event.id).startsWith('off_')) return;
+          tooltip.style.display = 'none';
           openEditModal(info.event.id);
         },
         eventDrop: function(info) { updateTimes(info.event); },
@@ -363,7 +470,6 @@
       calendar.render();
 
       grist.ready({ requiredAccess: 'full' });
-
       loadReferences();
 
       grist.onRecords(function(records) {
@@ -373,7 +479,6 @@
       });
     });
 
-    // Extraction robuste du référent (gère [ 'L', id ], id entier, ou texte brut)
     function resolveReferentName(refField) {
       if (!refField) return '';
       let targetId = null;
@@ -415,9 +520,7 @@
             }
           }
         }
-      } catch (e) {
-        console.warn("Calendrier_Officiel non chargé :", e);
-      }
+      } catch (e) {}
 
       try {
         const refs = await grist.docApi.fetchTable('Referents');
@@ -434,9 +537,7 @@
             refSelect.appendChild(opt);
           }
         }
-      } catch (e) {
-        console.warn("Referents non chargés :", e);
-      }
+      } catch (e) {}
 
       try {
         const elvs = await grist.docApi.fetchTable('Eleves');
@@ -468,7 +569,7 @@
 
         const modClasse = document.getElementById('modal-classe');
         const filterClasse = document.getElementById('filter-classe');
-        modClasse.innerHTML = '<option value="">-- Aucun groupe automatique --</option>';
+        modClasse.innerHTML = '<option value="">-- Aucun groupe automatique --</option><option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>';
         filterClasse.innerHTML = '<option value="">Toutes les classes</option>';
 
         Array.from(classesSet).sort().forEach(c => {
@@ -483,9 +584,7 @@
           optF.textContent = c;
           filterClasse.appendChild(optF);
         });
-      } catch (e) {
-        console.warn("Eleves non chargés :", e);
-      }
+      } catch (e) {}
 
       refreshCalendar();
     }
@@ -552,8 +651,6 @@
 
         const classePrincipale = elevesInscrits.length > 0 ? elevesInscrits[0].classe : '';
         const themeColor = getClassColor(classePrincipale);
-
-        // Résolution du prénom du référent
         const refPrenom = resolveReferentName(r.Referents || row.Referents);
 
         const d = fromGristDate(row.Debut || r.Debut);
@@ -595,6 +692,8 @@
       document.getElementById('modal-lieu').value = "UJPE";
       document.getElementById('modal-referent').value = "";
       document.getElementById('modal-classe').value = "";
+      document.getElementById('group-new-classe').style.display = 'none';
+      document.getElementById('new-classe-nom').value = "";
       document.getElementById('modal-eleve').value = "";
       document.getElementById('btn-delete').style.display = 'none';
 
@@ -636,7 +735,6 @@
       document.getElementById('group-new-activite').style.display = 'none';
       document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
 
-      // Pré-sélection du référent existant
       const refField = record.Referents;
       let targetRefId = "";
       if (Array.isArray(refField)) {
@@ -647,6 +745,7 @@
       document.getElementById('modal-referent').value = targetRefId;
 
       document.getElementById('modal-classe').value = "";
+      document.getElementById('group-new-classe').style.display = 'none';
       document.getElementById('modal-eleve').value = "";
 
       document.getElementById('modal-overlay').style.display = 'flex';
@@ -683,7 +782,6 @@
           Debut: toGristSec(debDate),
           Fin: toGristSec(finDate)
         };
-        // Formatage pour champ ReferenceList ou Reference Grist
         if (refId) {
           payload.Referents = ['L', refId];
         } else {
@@ -697,7 +795,10 @@
           seanceId = result[0];
         }
 
-        const classe = document.getElementById('modal-classe').value;
+        let classe = document.getElementById('modal-classe').value;
+        if (classe === '__NEW_CLASSE__') {
+          classe = document.getElementById('new-classe-nom').value.trim();
+        }
         const eleveId = document.getElementById('modal-eleve').value;
 
         if (seanceId) {
