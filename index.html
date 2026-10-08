@@ -17,12 +17,12 @@
       background: #ffffff;
     }
     #top-bar {
-      height: 42px;
+      height: 44px;
       padding: 6px 12px;
       background: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       box-sizing: border-box;
     }
@@ -42,7 +42,7 @@
       background: #ffffff;
     }
     #calendar {
-      height: calc(100vh - 44px) !important;
+      height: calc(100vh - 46px) !important;
       padding: 4px 8px;
       box-sizing: border-box;
     }
@@ -99,7 +99,7 @@
     .bg-vacances { background-color: #fff8e1 !important; opacity: 0.8; }
     .bg-ferie { background-color: #fde8e8 !important; opacity: 0.8; }
 
-    /* Bulle d'information détaillée (Tooltip) */
+    /* Bulle d'information détaillée */
     #event-tooltip {
       position: absolute;
       display: none;
@@ -112,7 +112,7 @@
       line-height: 1.4;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       pointer-events: none;
-      max-width: 250px;
+      max-width: 260px;
     }
     #event-tooltip b {
       color: #fcc419;
@@ -121,8 +121,8 @@
       font-size: 12px;
     }
 
-    /* Modale */
-    #modal-overlay {
+    /* Modales */
+    .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -134,12 +134,12 @@
     .modal-box {
       background: #ffffff;
       border-radius: 8px;
-      width: 440px;
-      max-width: 90vw;
+      width: 460px;
+      max-width: 92vw;
       padding: 20px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.25);
     }
-    .modal-box h3 { margin-top: 0; margin-bottom: 14px; color: #1f4e79; }
+    .modal-box h3 { margin-top: 0; margin-bottom: 12px; color: #1f4e79; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #333; }
     .form-group input, .form-group select {
@@ -149,10 +149,21 @@
       display: flex; justify-content: space-between; align-items: center;
       margin-top: 14px; padding-top: 10px; border-top: 1px solid #eee;
     }
-    .btn { padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn { padding: 7px 13px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12.5px; }
     .btn-primary { background: #1f4e79; color: #ffffff; }
     .btn-secondary { background: #e0e0e0; color: #333333; }
     .btn-danger { background: #dc3545; color: #ffffff; }
+    .btn-manage { background: #495057; color: #ffffff; }
+
+    /* En-tête imprimable */
+    #print-header {
+      display: none;
+      padding: 4px 8px 8px 8px;
+      border-bottom: 2px solid #1f4e79;
+      margin-bottom: 6px;
+    }
+    #print-header .print-title { font-size: 16px; font-weight: bold; color: #1f4e79; }
+    #print-header .print-sub { font-size: 12px; font-weight: 600; color: #495057; margin-top: 2px; }
 
     /* MISE EN PAGE IMPRESSION A4 PAYSAGE */
     @media print {
@@ -164,8 +175,11 @@
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      #top-bar, .fc-header-toolbar, #modal-overlay, #event-tooltip {
+      #top-bar, .fc-header-toolbar, .modal-overlay, #event-tooltip {
         display: none !important;
+      }
+      #print-header {
+        display: block !important;
       }
       html, body {
         width: 100% !important;
@@ -174,24 +188,25 @@
         background: #ffffff !important;
       }
       #calendar {
-        height: 185mm !important;
+        height: 180mm !important;
         width: 100% !important;
         padding: 0 !important;
       }
       .fc-view-harness, .fc-timegrid {
-        height: 185mm !important;
+        height: 180mm !important;
       }
       .fc-scroller {
         overflow: visible !important;
         height: auto !important;
       }
       .fc-timegrid-slots td {
-        height: 15px !important;
+        height: 14px !important;
       }
     }
   </style>
 </head>
 <body>
+  <!-- Bandeau supérieur -->
   <div id="top-bar">
     <div class="filter-item">
       <label for="filter-classe">Classe :</label>
@@ -205,16 +220,23 @@
         <option value="">Tous les élèves</option>
       </select>
     </div>
-    <div style="margin-left: auto;">
-      <button class="btn btn-secondary" onclick="printCalendar()">🖨️ Imprimer A4</button>
+    <div style="margin-left: auto; display: flex; gap: 8px;">
+      <button class="btn btn-manage" onclick="openManageModal()">⚙️ Gestion Semaine</button>
+      <button class="btn btn-secondary" onclick="prepareAndPrint()">🖨️ Imprimer A4</button>
     </div>
+  </div>
+
+  <!-- En-tête uniquement visible sur l'impression A4 -->
+  <div id="print-header">
+    <div class="print-title" id="print-header-title">PLANNING HEBDOMADAIRE</div>
+    <div class="print-sub" id="print-header-sub">Destinataire : Toutes les classes</div>
   </div>
 
   <div id="calendar"></div>
   <div id="event-tooltip"></div>
 
-  <!-- Fenêtre modale -->
-  <div id="modal-overlay">
+  <!-- Modale Saisie Séance -->
+  <div id="modal-overlay" class="modal-overlay">
     <div class="modal-box">
       <h3 id="modal-title">Programmer une séance</h3>
       <input type="hidden" id="edit-id" />
@@ -291,9 +313,10 @@
       </div>
 
       <div class="form-group">
-        <label>Affecter un groupe (Classe)</label>
+        <label>Affecter une classe</label>
         <select id="modal-classe" onchange="onModalClasseChange(this.value)">
           <option value="">-- Aucun groupe automatique --</option>
+          <option value="__ALL_CLASSES__">⭐ Toutes les classes</option>
           <option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>
         </select>
       </div>
@@ -304,9 +327,10 @@
       </div>
 
       <div class="form-group">
-        <label>Ou affecter un élève individuel</label>
+        <label>Ou affecter un élève</label>
         <select id="modal-eleve">
           <option value="">-- Aucun élève --</option>
+          <option value="__ALL_ELEVES__">⭐ Tous les élèves de l'effectif</option>
         </select>
       </div>
 
@@ -316,6 +340,55 @@
           <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
           <button class="btn btn-primary" onclick="saveSession()">Enregistrer</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Gestion de Semaine (Recopie & Suppression par jour) -->
+  <div id="modal-manage-overlay" class="modal-overlay">
+    <div class="modal-box">
+      <h3>Gestion hebdomadaire</h3>
+      <p style="font-size: 12px; color: #666; margin-top:-6px;" id="manage-week-label">Semaine affichée</p>
+
+      <!-- Section 1 : Recopier une semaine précédente -->
+      <div style="background:#f1f3f5; padding:10px; border-radius:6px; margin-bottom:14px;">
+        <label style="font-size: 12px; font-weight: bold; color: #1f4e79; display:block; margin-bottom:4px;">
+          📥 Recopier une semaine précédente
+        </label>
+        <div style="display:flex; gap:8px;">
+          <select id="manage-source-week" style="flex:1; padding:6px; font-size:12px; border-radius:4px; border:1px solid #ccc;">
+            <option value="1">La semaine précédente (S - 1)</option>
+            <option value="2">Il y a 2 semaines (S - 2)</option>
+            <option value="3">Il y a 3 semaines (S - 3)</option>
+            <option value="4">Il y a 4 semaines (S - 4)</option>
+          </select>
+          <button class="btn btn-primary" onclick="copyPreviousWeek()">Recopier</button>
+        </div>
+        <small style="display:block; color:#666; font-size:10.5px; margin-top:4px;">
+          * Seuls les élèves toujours dans l'effectif actuel sont réinscrits automatiquement. Si un élève est filtré en haut, seules ses séances sont dupliquées.
+        </small>
+      </div>
+
+      <!-- Section 2 : Vider la semaine / des journées -->
+      <div style="background:#fff5f5; border:1px solid #ffe3e3; padding:10px; border-radius:6px;">
+        <label style="font-size: 12px; font-weight: bold; color: #c92a2a; display:block; margin-bottom:6px;">
+          🗑️ Supprimer les séances (choix par jour)
+        </label>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; font-size:12px;">
+          <label><input type="checkbox" id="del-day-1" checked> Lundi</label>
+          <label><input type="checkbox" id="del-day-2" checked> Mardi</label>
+          <label><input type="checkbox" id="del-day-3" checked> Mercredi</label>
+          <label><input type="checkbox" id="del-day-4" checked> Jeudi</label>
+          <label><input type="checkbox" id="del-day-5" checked> Vendredi</label>
+          <label><input type="checkbox" id="del-day-6"> Samedi</label>
+        </div>
+        <div style="margin-top:10px; text-align:right;">
+          <button class="btn btn-danger" onclick="deleteSelectedDays()">Vider les jours cochés</button>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px; padding-top:10px;">
+        <button class="btn btn-secondary" style="margin-left:auto;" onclick="closeManageModal()">Fermer</button>
       </div>
     </div>
   </div>
@@ -369,16 +442,32 @@
     function onModalClasseChange(val) {
       const isNew = val === '__NEW_CLASSE__';
       document.getElementById('group-new-classe').style.display = isNew ? 'block' : 'none';
-      if (isNew) {
-        document.getElementById('new-classe-nom').focus();
-      }
-      if (val) {
-        document.getElementById('modal-eleve').value = '';
-      }
+      if (isNew) document.getElementById('new-classe-nom').focus();
+      if (val && val !== '') document.getElementById('modal-eleve').value = '';
     }
 
-    function printCalendar() {
-      // Ajuste la vue pour l'impression A4
+    // Gestion du texte d'impression A4
+    function prepareAndPrint() {
+      const view = calendar.view;
+      const startD = view.currentStart;
+      const endD = addDays(view.currentEnd, -1);
+
+      const fStart = startD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      const fEnd = endD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      document.getElementById('print-header-title').textContent = `PLANNING — Semaine du ${fStart} au ${fEnd}`;
+
+      const fClasse = document.getElementById('filter-classe').value;
+      const fEleveSelect = document.getElementById('filter-eleve');
+      let sub = "Destinataire : Toutes les classes";
+
+      if (fEleveSelect.value) {
+        sub = `Destinataire : Élève ${fEleveSelect.options[fEleveSelect.selectedIndex].text}`;
+      } else if (fClasse) {
+        sub = `Destinataire : Classe ${fClasse}`;
+      }
+      document.getElementById('print-header-sub').textContent = sub;
+
       calendar.updateSize();
       window.print();
     }
@@ -415,7 +504,7 @@
 
           let meta = [];
           if (p.lieu) meta.push(`📍 ${p.lieu}`);
-          if (p.referent) meta.push(`<span class="badge-referent">🎓 ${p.referent}</span>`);
+          if (p.referent) meta.push(`<span class="badge-referent">🧭 ${p.referent}</span>`);
           if (p.classe) meta.push(`🏷️ ${p.classe}`);
           if (meta.length) html += `<div class="event-meta">${meta.join(' • ')}</div>`;
 
@@ -427,7 +516,6 @@
           return { html: html };
         },
 
-        // Bulle d'informations détaillées au survol (Tooltip)
         eventMouseEnter: function(info) {
           if (info.event.display === 'background') return;
           const p = info.event.extendedProps || {};
@@ -437,10 +525,10 @@
           let content = `<b>${info.event.title}</b>`;
           content += `⏰ ${startStr} - ${endStr}<br/>`;
           if (p.lieu) content += `📍 Lieu : ${p.lieu}<br/>`;
-          if (p.referent) content += `🎓 Référent : ${p.referent}<br/>`;
+          if (p.referent) content += `🧭 Référent : ${p.referent}<br/>`;
           if (p.classe) content += `🏷️ Classe : ${p.classe}<br/>`;
           if (p.eleves && p.eleves.length > 0) {
-            content += `👥 Élèves inscrits : ${p.eleves.join(', ')}`;
+            content += `👥 Élèves : ${p.eleves.join(', ')}`;
           }
 
           tooltip.innerHTML = content;
@@ -545,7 +633,7 @@
         const classesSet = new Set();
         const modEleve = document.getElementById('modal-eleve');
         const filterEleve = document.getElementById('filter-eleve');
-        modEleve.innerHTML = '<option value="">-- Aucun élève --</option>';
+        modEleve.innerHTML = '<option value="">-- Aucun élève --</option><option value="__ALL_ELEVES__">⭐ Tous les élèves de l\'effectif</option>';
         filterEleve.innerHTML = '<option value="">Tous les élèves</option>';
 
         if (elvs && elvs.id) {
@@ -569,7 +657,7 @@
 
         const modClasse = document.getElementById('modal-classe');
         const filterClasse = document.getElementById('filter-classe');
-        modClasse.innerHTML = '<option value="">-- Aucun groupe automatique --</option><option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>';
+        modClasse.innerHTML = '<option value="">-- Aucun groupe automatique --</option><option value="__ALL_CLASSES__">⭐ Toutes les classes</option><option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>';
         filterClasse.innerHTML = '<option value="">Toutes les classes</option>';
 
         Array.from(classesSet).sort().forEach(c => {
@@ -596,6 +684,7 @@
         if (insc && insc.id && insc.Seance && insc.Eleve) {
           for (let i = 0; i < insc.id.length; i++) {
             inscriptionsList.push({
+              id: insc.id[i],
               seanceId: insc.Seance[i],
               eleveId: insc.Eleve[i]
             });
@@ -799,17 +888,22 @@
         if (classe === '__NEW_CLASSE__') {
           classe = document.getElementById('new-classe-nom').value.trim();
         }
-        const eleveId = document.getElementById('modal-eleve').value;
+        const eleveVal = document.getElementById('modal-eleve').value;
 
         if (seanceId) {
-          if (classe) {
-            const inscrits = elevesList.filter(e => e.classe === classe);
+          let inscrits = [];
+          if (classe === '__ALL_CLASSES__' || eleveVal === '__ALL_ELEVES__') {
+            inscrits = elevesList;
+          } else if (classe) {
+            inscrits = elevesList.filter(e => e.classe === classe);
+          } else if (eleveVal) {
+            const eObj = elevesList.find(e => e.id === parseInt(eleveVal, 10));
+            if (eObj) inscrits = [eObj];
+          }
+
+          if (inscrits.length) {
             const inscriptActions = inscrits.map(e => ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: e.id }]);
-            if (inscriptActions.length) await grist.docApi.applyUserActions(inscriptActions);
-          } else if (eleveId) {
-            await grist.docApi.applyUserActions([
-              ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: parseInt(eleveId, 10) }]
-            ]);
+            await grist.docApi.applyUserActions(inscriptActions);
           }
         }
 
@@ -842,6 +936,75 @@
         }
       });
     }
-  </script>
-</body>
-</html>
+
+    /* GESTION DE SEMAINE : RECOPIE ET SUPPRESSION */
+    function openManageModal() {
+      const view = calendar.view;
+      const startD = view.currentStart;
+      const endD = addDays(view.currentEnd, -1);
+      const fStart = startD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      const fEnd = endD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      document.getElementById('manage-week-label').textContent = `Semaine affichée : du ${fStart} au ${fEnd}`;
+
+      document.getElementById('modal-manage-overlay').style.display = 'flex';
+    }
+
+    function closeManageModal() {
+      document.getElementById('modal-manage-overlay').style.display = 'none';
+    }
+
+    // Vider les jours cochés de la semaine courante
+    async function deleteSelectedDays() {
+      const daysChecked = [];
+      for (let i = 1; i <= 6; i++) {
+        if (document.getElementById(`del-day-${i}`).checked) daysChecked.push(i); // 1 = Lundi, 6 = Samedi
+      }
+
+      if (daysChecked.length === 0) {
+        alert("Veuillez cocher au moins une journée à supprimer.");
+        return;
+      }
+
+      if (!confirm("Confirmer la suppression des séances sur les journées sélectionnées ?")) return;
+
+      const view = calendar.view;
+      const startW = view.currentStart.getTime() / 1000;
+      const endW = view.currentEnd.getTime() / 1000;
+
+      const toDeleteIds = [];
+      rawSeances.forEach(r => {
+        const d = r.Debut;
+        if (d >= startW && d < endW) {
+          const dateObj = fromGristDate(d);
+          let dayNum = dateObj.getDay(); // 0 = Dim, 1 = Lun...
+          if (dayNum === 0) dayNum = 7;
+          if (daysChecked.includes(dayNum)) {
+            toDeleteIds.push(r.id);
+          }
+        }
+      });
+
+      if (toDeleteIds.length === 0) {
+        alert("Aucune séance trouvée sur ces journées.");
+        return;
+      }
+
+      try {
+        await grist.selectedTable.destroy(toDeleteIds);
+        closeManageModal();
+      } catch (e) {
+        alert("Erreur lors de la suppression : " + e.message);
+      }
+    }
+
+    // Recopie d'une semaine passée sur la semaine active
+    async function copyPreviousWeek() {
+      const weeksAgo = parseInt(document.getElementById('manage-source-week').value, 10);
+      const deltaSec = weeksAgo * 7 * 86400;
+
+      const currentStart = calendar.view.currentStart;
+      const currentStartSec = currentStart.getTime() / 1000;
+      const currentEndSec = calendar.view.currentEnd.getTime() / 1000;
+
+      const sourceStartSec = currentStartSec - deltaSec;
+      const sourceEndSec = currentEndSec - deltaSec
