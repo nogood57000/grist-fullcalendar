@@ -7,24 +7,26 @@
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/fr.global.min.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
+    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       padding: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #ffffff;
+      display: flex;
+      flex-direction: column;
     }
     #top-bar {
-      height: 44px;
+      flex: 0 0 44px;
       padding: 6px 12px;
       background: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
       display: flex;
       gap: 10px;
       align-items: center;
-      box-sizing: border-box;
     }
     .filter-item {
       display: flex;
@@ -41,10 +43,15 @@
       font-size: 13px;
       background: #ffffff;
     }
-    #calendar {
-      height: calc(100vh - 46px) !important;
+    #calendar-wrapper {
+      flex: 1 1 auto;
+      height: calc(100vh - 44px);
       padding: 4px 8px;
-      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #calendar {
+      height: 100%;
+      min-height: 500px;
     }
 
     /* Cartes séances */
@@ -186,6 +193,12 @@
         height: auto !important;
         overflow: visible !important;
         background: #ffffff !important;
+        display: block !important;
+      }
+      #calendar-wrapper {
+        height: auto !important;
+        overflow: visible !important;
+        padding: 0 !important;
       }
       #calendar {
         height: 180mm !important;
@@ -232,7 +245,9 @@
     <div class="print-sub" id="print-header-sub">Destinataire : Toutes les classes</div>
   </div>
 
-  <div id="calendar"></div>
+  <div id="calendar-wrapper">
+    <div id="calendar"></div>
+  </div>
   <div id="event-tooltip"></div>
 
   <!-- Modale Saisie Séance -->
@@ -344,13 +359,12 @@
     </div>
   </div>
 
-  <!-- Modale Gestion de Semaine (Recopie & Suppression par jour) -->
+  <!-- Modale Gestion de Semaine -->
   <div id="modal-manage-overlay" class="modal-overlay">
     <div class="modal-box">
       <h3>Gestion hebdomadaire</h3>
       <p style="font-size: 12px; color: #666; margin-top:-6px;" id="manage-week-label">Semaine affichée</p>
 
-      <!-- Section 1 : Recopier une semaine précédente -->
       <div style="background:#f1f3f5; padding:10px; border-radius:6px; margin-bottom:14px;">
         <label style="font-size: 12px; font-weight: bold; color: #1f4e79; display:block; margin-bottom:4px;">
           📥 Recopier une semaine précédente
@@ -365,11 +379,10 @@
           <button class="btn btn-primary" onclick="copyPreviousWeek()">Recopier</button>
         </div>
         <small style="display:block; color:#666; font-size:10.5px; margin-top:4px;">
-          * Seuls les élèves toujours dans l'effectif actuel sont réinscrits automatiquement. Si un élève est filtré en haut, seules ses séances sont dupliquées.
+          * Seuls les élèves toujours présents dans l'effectif actuel sont réinscrits.
         </small>
       </div>
 
-      <!-- Section 2 : Vider la semaine / des journées -->
       <div style="background:#fff5f5; border:1px solid #ffe3e3; padding:10px; border-radius:6px;">
         <label style="font-size: 12px; font-weight: bold; color: #c92a2a; display:block; margin-bottom:6px;">
           🗑️ Supprimer les séances (choix par jour)
@@ -446,8 +459,8 @@
       if (val && val !== '') document.getElementById('modal-eleve').value = '';
     }
 
-    // Gestion du texte d'impression A4
     function prepareAndPrint() {
+      if (!calendar) return;
       const view = calendar.view;
       const startD = view.currentStart;
       const endD = addDays(view.currentEnd, -1);
@@ -485,7 +498,7 @@
         slotDuration: '00:30:00',
         allDaySlot: false,
         displayEventTime: false,
-        height: '100%',
+        expandRows: true,
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -565,6 +578,9 @@
         populateActivityList();
         loadInscriptionsAndRefresh();
       });
+
+      // Recalcule la taille après 200ms pour garantir le rendu complet dans l'iframe
+      setTimeout(() => { if (calendar) calendar.updateSize(); }, 200);
     });
 
     function resolveReferentName(refField) {
@@ -695,7 +711,7 @@
     }
 
     function populateActivityList() {
-      const distinctNames = new Set(['Sport', 'Entretien santé', 'Cinéma', 'Cuisine', 'Remise à niveau', 'Foot', 'Boxe']);
+      const distinctNames = new Set(['Sport', 'Entretien santé', 'Cinéma', 'Cuisine', 'Remise à niveau', 'Foot', 'Boxe', 'Ménage']);
       rawSeances.forEach(r => {
         if (r.Titre && r.Titre.trim() !== '') distinctNames.add(r.Titre.trim());
       });
@@ -937,7 +953,7 @@
       });
     }
 
-    /* GESTION DE SEMAINE : RECOPIE ET SUPPRESSION */
+    /* GESTION DE SEMAINE */
     function openManageModal() {
       const view = calendar.view;
       const startD = view.currentStart;
@@ -953,11 +969,10 @@
       document.getElementById('modal-manage-overlay').style.display = 'none';
     }
 
-    // Vider les jours cochés de la semaine courante
     async function deleteSelectedDays() {
       const daysChecked = [];
       for (let i = 1; i <= 6; i++) {
-        if (document.getElementById(`del-day-${i}`).checked) daysChecked.push(i); // 1 = Lundi, 6 = Samedi
+        if (document.getElementById(`del-day-${i}`).checked) daysChecked.push(i);
       }
 
       if (daysChecked.length === 0) {
@@ -976,7 +991,7 @@
         const d = r.Debut;
         if (d >= startW && d < endW) {
           const dateObj = fromGristDate(d);
-          let dayNum = dateObj.getDay(); // 0 = Dim, 1 = Lun...
+          let dayNum = dateObj.getDay();
           if (dayNum === 0) dayNum = 7;
           if (daysChecked.includes(dayNum)) {
             toDeleteIds.push(r.id);
@@ -986,25 +1001,3 @@
 
       if (toDeleteIds.length === 0) {
         alert("Aucune séance trouvée sur ces journées.");
-        return;
-      }
-
-      try {
-        await grist.selectedTable.destroy(toDeleteIds);
-        closeManageModal();
-      } catch (e) {
-        alert("Erreur lors de la suppression : " + e.message);
-      }
-    }
-
-    // Recopie d'une semaine passée sur la semaine active
-    async function copyPreviousWeek() {
-      const weeksAgo = parseInt(document.getElementById('manage-source-week').value, 10);
-      const deltaSec = weeksAgo * 7 * 86400;
-
-      const currentStart = calendar.view.currentStart;
-      const currentStartSec = currentStart.getTime() / 1000;
-      const currentEndSec = calendar.view.currentEnd.getTime() / 1000;
-
-      const sourceStartSec = currentStartSec - deltaSec;
-      const sourceEndSec = currentEndSec - deltaSec
