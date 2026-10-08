@@ -319,4 +319,161 @@
     }
 
     function snapToSlot(timeStr) {
-      const [h, m] =
+      const [h, m] = timeStr.split(':').map(Number);
+      const roundedM = m < 30 ? '00' : '30';
+      return `${String(h).padStart(2, '0')}:${roundedM}`;
+    }
+
+    function openCreateModal(info) {
+      document.getElementById('edit-id').value = "";
+      document.getElementById('modal-title').textContent = "Programmer une séance";
+      document.getElementById('modal-activite').value = "";
+      document.getElementById('group-new-activite').style.display = 'none';
+      document.getElementById('new-activite-nom').value = "";
+      document.getElementById('modal-lieu').value = "UJPE";
+      document.getElementById('modal-classe').value = "";
+      document.getElementById('modal-eleve').value = "";
+      document.getElementById('btn-delete').style.display = 'none';
+
+      selectedDateStr = info.startStr.split('T')[0];
+      const rawTime = info.startStr.split('T')[1].substring(0, 5);
+      const slot = snapToSlot(rawTime);
+      const startSelect = document.getElementById('modal-time-start');
+      if (startSelect.querySelector(`option[value="${slot}"]`)) {
+        startSelect.value = slot;
+      }
+
+      const diffMin = Math.round((info.end - info.start) / 60000);
+      const dureeSelect = document.getElementById('modal-duree');
+      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
+
+      document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function openEditModal(rowId) {
+      const record = rawSeances.find(r => String(r.id) === String(rowId));
+      if (!record) return;
+
+      document.getElementById('edit-id').value = rowId;
+      document.getElementById('modal-title').textContent = "Modifier la séance";
+      document.getElementById('btn-delete').style.display = 'block';
+
+      const d = fromGristDate(record.Debut);
+      const f = fromGristDate(record.Fin);
+      selectedDateStr = d.toISOString().split('T')[0];
+
+      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const slot = snapToSlot(timeStr);
+      const startSelect = document.getElementById('modal-time-start');
+      if (startSelect.querySelector(`option[value="${slot}"]`)) {
+        startSelect.value = slot;
+      }
+
+      const diffMin = Math.round((f - d) / 60000);
+      const dureeSelect = document.getElementById('modal-duree');
+      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
+
+      document.getElementById('modal-activite').value = record.Titre || "";
+      document.getElementById('group-new-activite').style.display = 'none';
+      document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
+      document.getElementById('modal-classe').value = "";
+      document.getElementById('modal-eleve').value = "";
+
+      document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').style.display = 'none';
+    }
+
+    async function saveSession() {
+      try {
+        let titre = document.getElementById('modal-activite').value;
+        if (titre === '__NEW__') {
+          titre = document.getElementById('new-activite-nom').value.trim();
+          if (!titre) {
+            alert("Veuillez indiquer un nom d'activité.");
+            return;
+          }
+        }
+        if (!titre) {
+          alert("Veuillez sélectionner ou créer une activité.");
+          return;
+        }
+
+        const lieu = document.getElementById('modal-lieu').value;
+        const tStart = document.getElementById('modal-time-start').value;
+        const dureeMin = parseInt(document.getElementById('modal-duree').value, 10);
+
+        const debDate = new Date(`${selectedDateStr}T${tStart}:00`);
+        const finDate = new Date(debDate.getTime() + dureeMin * 60000);
+
+        const editId = document.getElementById('edit-id').value;
+        let seanceId = editId ? parseInt(editId, 10) : null;
+
+        if (seanceId) {
+          await grist.selectedTable.update({
+            id: seanceId,
+            fields: { Titre: titre, Lieu: lieu, Debut: toGristSec(debDate), Fin: toGristSec(finDate) }
+          });
+        } else {
+          // Utilise directement applyUserActions pour garantir la création et récupérer l'ID
+          const actions = [
+            ['AddRecord', 'Seances', null, {
+              Titre: titre,
+              Lieu: lieu,
+              Debut: toGristSec(debDate),
+              Fin: toGristSec(finDate)
+            }]
+          ];
+          const result = await grist.docApi.applyUserActions(actions);
+          seanceId = result[0];
+        }
+
+        // Affectations d'élèves
+        const classe = document.getElementById('modal-classe').value;
+        const eleveId = document.getElementById('modal-eleve').value;
+
+        if (seanceId) {
+          if (classe) {
+            const inscrits = elevesList.filter(e => e.classe === classe);
+            const inscriptActions = inscrits.map(e => ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: e.id }]);
+            if (inscriptActions.length) await grist.docApi.applyUserActions(inscriptActions);
+          } else if (eleveId) {
+            await grist.docApi.applyUserActions([
+              ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: parseInt(eleveId, 10) }]
+            ]);
+          }
+        }
+
+        closeModal();
+      } catch (err) {
+        alert("Erreur lors de l'enregistrement : " + (err.message || err));
+      }
+    }
+
+    async function deleteSession() {
+      const editId = document.getElementById('edit-id').value;
+      if (!editId) return;
+      if (confirm("Supprimer cette séance ?")) {
+        try {
+          await grist.selectedTable.destroy([parseInt(editId, 10)]);
+          closeModal();
+        } catch (e) {
+          alert("Erreur lors de la suppression : " + e.message);
+        }
+      }
+    }
+
+    function updateTimes(event) {
+      grist.selectedTable.update({
+        id: parseInt(event.id, 10),
+        fields: {
+          Debut: toGristSec(event.start),
+          Fin: toGristSec(event.end)
+        }
+      });
+    }
+  </script>
+</body>
+</html>
