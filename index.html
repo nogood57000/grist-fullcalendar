@@ -12,15 +12,13 @@
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
+      height: 100vh;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #ffffff;
-      display: flex;
-      flex-direction: column;
     }
     #top-bar {
-      flex: 0 0 44px;
+      height: 44px;
       padding: 6px 12px;
       background: #f8f9fa;
       border-bottom: 1px solid #dee2e6;
@@ -43,15 +41,10 @@
       font-size: 13px;
       background: #ffffff;
     }
-    #calendar-wrapper {
-      flex: 1 1 auto;
-      height: calc(100vh - 44px);
-      padding: 4px 8px;
-      overflow-y: auto;
-    }
     #calendar {
-      height: 100%;
-      min-height: 500px;
+      height: calc(100vh - 46px) !important;
+      min-height: 550px;
+      padding: 4px 8px;
     }
 
     /* Cartes séances */
@@ -172,7 +165,7 @@
     #print-header .print-title { font-size: 16px; font-weight: bold; color: #1f4e79; }
     #print-header .print-sub { font-size: 12px; font-weight: 600; color: #495057; margin-top: 2px; }
 
-    /* MISE EN PAGE IMPRESSION A4 PAYSAGE */
+    /* Impression A4 Paysage */
     @media print {
       @page {
         size: A4 landscape;
@@ -193,12 +186,6 @@
         height: auto !important;
         overflow: visible !important;
         background: #ffffff !important;
-        display: block !important;
-      }
-      #calendar-wrapper {
-        height: auto !important;
-        overflow: visible !important;
-        padding: 0 !important;
       }
       #calendar {
         height: 180mm !important;
@@ -245,9 +232,7 @@
     <div class="print-sub" id="print-header-sub">Destinataire : Toutes les classes</div>
   </div>
 
-  <div id="calendar-wrapper">
-    <div id="calendar"></div>
-  </div>
+  <div id="calendar"></div>
   <div id="event-tooltip"></div>
 
   <!-- Modale Saisie Séance -->
@@ -498,7 +483,7 @@
         slotDuration: '00:30:00',
         allDaySlot: false,
         displayEventTime: false,
-        expandRows: true,
+        height: '100%',
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -579,8 +564,7 @@
         loadInscriptionsAndRefresh();
       });
 
-      // Recalcule la taille après 200ms pour garantir le rendu complet dans l'iframe
-      setTimeout(() => { if (calendar) calendar.updateSize(); }, 200);
+      setTimeout(() => { if (calendar) calendar.updateSize(); }, 300);
     });
 
     function resolveReferentName(refField) {
@@ -695,309 +679,3 @@
 
     async function loadInscriptionsAndRefresh() {
       try {
-        const insc = await grist.docApi.fetchTable('Inscriptions');
-        inscriptionsList = [];
-        if (insc && insc.id && insc.Seance && insc.Eleve) {
-          for (let i = 0; i < insc.id.length; i++) {
-            inscriptionsList.push({
-              id: insc.id[i],
-              seanceId: insc.Seance[i],
-              eleveId: insc.Eleve[i]
-            });
-          }
-        }
-      } catch (e) {}
-      refreshCalendar();
-    }
-
-    function populateActivityList() {
-      const distinctNames = new Set(['Sport', 'Entretien santé', 'Cinéma', 'Cuisine', 'Remise à niveau', 'Foot', 'Boxe', 'Ménage']);
-      rawSeances.forEach(r => {
-        if (r.Titre && r.Titre.trim() !== '') distinctNames.add(r.Titre.trim());
-      });
-
-      const actSelect = document.getElementById('modal-activite');
-      const cur = actSelect.value;
-      actSelect.innerHTML = '<option value="">-- Choisir une activité --</option><option value="__NEW__">➕ Créer une nouvelle activité...</option>';
-
-      Array.from(distinctNames).sort().forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        actSelect.appendChild(opt);
-      });
-      if (cur) actSelect.value = cur;
-    }
-
-    function refreshCalendar() {
-      if (!calendar) return;
-      calendar.removeAllEvents();
-      calendar.addEventSource(officialEvents);
-
-      const fClasse = document.getElementById('filter-classe').value;
-      const fEleveId = document.getElementById('filter-eleve').value ? parseInt(document.getElementById('filter-eleve').value, 10) : null;
-
-      const seanceEvents = rawSeances.map(r => {
-        const row = grist.mapColumnNames ? grist.mapColumnNames(r) : r;
-        const seanceId = r.id;
-
-        const elevesInscrits = inscriptionsList
-          .filter(i => i.seanceId === seanceId)
-          .map(i => elevesList.find(e => e.id === i.eleveId))
-          .filter(Boolean);
-
-        if (fEleveId) {
-          const hasEleve = elevesInscrits.some(e => e.id === fEleveId);
-          if (!hasEleve) return null;
-        } else if (fClasse) {
-          const hasClasse = elevesInscrits.some(e => e.classe === fClasse);
-          if (!hasClasse) return null;
-        }
-
-        const classePrincipale = elevesInscrits.length > 0 ? elevesInscrits[0].classe : '';
-        const themeColor = getClassColor(classePrincipale);
-        const refPrenom = resolveReferentName(r.Referents || row.Referents);
-
-        const d = fromGristDate(row.Debut || r.Debut);
-        const f = fromGristDate(row.Fin || r.Fin);
-        const initialesStr = elevesInscrits.map(e => e.initiales).filter(Boolean);
-
-        return {
-          id: String(r.id),
-          title: row.Titre || r.Titre || 'Séance',
-          start: d,
-          end: f,
-          backgroundColor: themeColor.bg,
-          borderColor: themeColor.border,
-          textColor: '#ffffff',
-          extendedProps: {
-            lieu: r.Lieu || row.Lieu || '',
-            referent: refPrenom,
-            classe: classePrincipale,
-            eleves: initialesStr
-          }
-        };
-      }).filter(e => e && e.start && e.end);
-
-      calendar.addEventSource(seanceEvents);
-    }
-
-    function snapToSlot(timeStr) {
-      const [h, m] = timeStr.split(':').map(Number);
-      const roundedM = m < 30 ? '00' : '30';
-      return `${String(h).padStart(2, '0')}:${roundedM}`;
-    }
-
-    function openCreateModal(info) {
-      document.getElementById('edit-id').value = "";
-      document.getElementById('modal-title').textContent = "Programmer une séance";
-      document.getElementById('modal-activite').value = "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('new-activite-nom').value = "";
-      document.getElementById('modal-lieu').value = "UJPE";
-      document.getElementById('modal-referent').value = "";
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('group-new-classe').style.display = 'none';
-      document.getElementById('new-classe-nom').value = "";
-      document.getElementById('modal-eleve').value = "";
-      document.getElementById('btn-delete').style.display = 'none';
-
-      selectedDateStr = info.startStr.split('T')[0];
-      const rawTime = info.startStr.split('T')[1].substring(0, 5);
-      const slot = snapToSlot(rawTime);
-      const startSelect = document.getElementById('modal-time-start');
-      if (startSelect.querySelector(`option[value="${slot}"]`)) startSelect.value = slot;
-
-      const diffMin = Math.round((info.end - info.start) / 60000);
-      const dureeSelect = document.getElementById('modal-duree');
-      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function openEditModal(rowId) {
-      const record = rawSeances.find(r => String(r.id) === String(rowId));
-      if (!record) return;
-
-      document.getElementById('edit-id').value = rowId;
-      document.getElementById('modal-title').textContent = "Modifier la séance";
-      document.getElementById('btn-delete').style.display = 'block';
-
-      const d = fromGristDate(record.Debut);
-      const f = fromGristDate(record.Fin);
-      selectedDateStr = d.toISOString().split('T')[0];
-
-      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      const slot = snapToSlot(timeStr);
-      const startSelect = document.getElementById('modal-time-start');
-      if (startSelect.querySelector(`option[value="${slot}"]`)) startSelect.value = slot;
-
-      const diffMin = Math.round((f - d) / 60000);
-      const dureeSelect = document.getElementById('modal-duree');
-      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-activite').value = record.Titre || "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
-
-      const refField = record.Referents;
-      let targetRefId = "";
-      if (Array.isArray(refField)) {
-        targetRefId = refField.find(x => typeof x === 'number') || "";
-      } else if (typeof refField === 'number') {
-        targetRefId = refField;
-      }
-      document.getElementById('modal-referent').value = targetRefId;
-
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('group-new-classe').style.display = 'none';
-      document.getElementById('modal-eleve').value = "";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').style.display = 'none';
-    }
-
-    async function saveSession() {
-      try {
-        let titre = document.getElementById('modal-activite').value;
-        if (titre === '__NEW__') {
-          titre = document.getElementById('new-activite-nom').value.trim();
-          if (!titre) { alert("Veuillez indiquer un nom d'activité."); return; }
-        }
-        if (!titre) { alert("Veuillez choisir ou saisir une activité."); return; }
-
-        const lieu = document.getElementById('modal-lieu').value;
-        const refVal = document.getElementById('modal-referent').value;
-        const refId = refVal ? parseInt(refVal, 10) : null;
-        const tStart = document.getElementById('modal-time-start').value;
-        const dureeMin = parseInt(document.getElementById('modal-duree').value, 10);
-
-        const debDate = new Date(`${selectedDateStr}T${tStart}:00`);
-        const finDate = new Date(debDate.getTime() + dureeMin * 60000);
-
-        const editId = document.getElementById('edit-id').value;
-        let seanceId = editId ? parseInt(editId, 10) : null;
-
-        const payload = {
-          Titre: titre,
-          Lieu: lieu,
-          Debut: toGristSec(debDate),
-          Fin: toGristSec(finDate)
-        };
-        if (refId) {
-          payload.Referents = ['L', refId];
-        } else {
-          payload.Referents = null;
-        }
-
-        if (seanceId) {
-          await grist.selectedTable.update({ id: seanceId, fields: payload });
-        } else {
-          const result = await grist.docApi.applyUserActions([['AddRecord', 'Seances', null, payload]]);
-          seanceId = result[0];
-        }
-
-        let classe = document.getElementById('modal-classe').value;
-        if (classe === '__NEW_CLASSE__') {
-          classe = document.getElementById('new-classe-nom').value.trim();
-        }
-        const eleveVal = document.getElementById('modal-eleve').value;
-
-        if (seanceId) {
-          let inscrits = [];
-          if (classe === '__ALL_CLASSES__' || eleveVal === '__ALL_ELEVES__') {
-            inscrits = elevesList;
-          } else if (classe) {
-            inscrits = elevesList.filter(e => e.classe === classe);
-          } else if (eleveVal) {
-            const eObj = elevesList.find(e => e.id === parseInt(eleveVal, 10));
-            if (eObj) inscrits = [eObj];
-          }
-
-          if (inscrits.length) {
-            const inscriptActions = inscrits.map(e => ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: e.id }]);
-            await grist.docApi.applyUserActions(inscriptActions);
-          }
-        }
-
-        closeModal();
-        loadInscriptionsAndRefresh();
-      } catch (err) {
-        alert("Erreur lors de l'enregistrement : " + (err.message || err));
-      }
-    }
-
-    async function deleteSession() {
-      const editId = document.getElementById('edit-id').value;
-      if (!editId) return;
-      if (confirm("Supprimer cette séance ?")) {
-        try {
-          await grist.selectedTable.destroy([parseInt(editId, 10)]);
-          closeModal();
-        } catch (e) {
-          alert("Erreur lors de la suppression : " + e.message);
-        }
-      }
-    }
-
-    function updateTimes(event) {
-      grist.selectedTable.update({
-        id: parseInt(event.id, 10),
-        fields: {
-          Debut: toGristSec(event.start),
-          Fin: toGristSec(event.end)
-        }
-      });
-    }
-
-    /* GESTION DE SEMAINE */
-    function openManageModal() {
-      const view = calendar.view;
-      const startD = view.currentStart;
-      const endD = addDays(view.currentEnd, -1);
-      const fStart = startD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-      const fEnd = endD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-      document.getElementById('manage-week-label').textContent = `Semaine affichée : du ${fStart} au ${fEnd}`;
-
-      document.getElementById('modal-manage-overlay').style.display = 'flex';
-    }
-
-    function closeManageModal() {
-      document.getElementById('modal-manage-overlay').style.display = 'none';
-    }
-
-    async function deleteSelectedDays() {
-      const daysChecked = [];
-      for (let i = 1; i <= 6; i++) {
-        if (document.getElementById(`del-day-${i}`).checked) daysChecked.push(i);
-      }
-
-      if (daysChecked.length === 0) {
-        alert("Veuillez cocher au moins une journée à supprimer.");
-        return;
-      }
-
-      if (!confirm("Confirmer la suppression des séances sur les journées sélectionnées ?")) return;
-
-      const view = calendar.view;
-      const startW = view.currentStart.getTime() / 1000;
-      const endW = view.currentEnd.getTime() / 1000;
-
-      const toDeleteIds = [];
-      rawSeances.forEach(r => {
-        const d = r.Debut;
-        if (d >= startW && d < endW) {
-          const dateObj = fromGristDate(d);
-          let dayNum = dateObj.getDay();
-          if (dayNum === 0) dayNum = 7;
-          if (daysChecked.includes(dayNum)) {
-            toDeleteIds.push(r.id);
-          }
-        }
-      });
-
-      if (toDeleteIds.length === 0) {
-        alert("Aucune séance trouvée sur ces journées.");
