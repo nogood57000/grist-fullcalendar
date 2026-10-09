@@ -2,1085 +2,1041 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Planning Hebdomadaire</title>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/fr.global.min.js"></script>
+  <title>Planning DTPJJ de Moselle</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/fr.global.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #ffffff;
     }
-    #top-bar {
-      height: 44px;
-      padding: 6px 12px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
+
+    #barre-legende {
       display: flex;
-      gap: 10px;
+      flex-wrap: wrap;
       align-items: center;
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      z-index: 10;
-    }
-    .filter-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      gap: 14px;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
       font-size: 13px;
-      font-weight: 600;
-      color: #333333;
+      font-weight: 700;
+      color: #334155;
     }
-    .filter-item select {
-      padding: 4px 8px;
-      border: 1px solid #ced4da;
+    .item-legende {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .pastille {
+      width: 15px;
+      height: 15px;
       border-radius: 4px;
-      font-size: 13px;
-      background: #ffffff;
+      display: inline-block;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.18);
     }
+    .pastille-vacances {
+      background: #bae6fd;
+      border: 1px solid #38bdf8;
+    }
+    .pastille-we-ferie {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+    }
+
     #calendar-container {
-      position: absolute;
-      top: 44px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 4px 8px;
+      flex: 1;
+      min-height: 0;
+      padding: 10px;
+      box-sizing: border-box;
+      position: relative;
     }
     #calendar {
       height: 100%;
     }
 
-    /* Cartes séances */
-    .fc-event {
-      cursor: pointer;
-      border-radius: 5px;
-      padding: 3px 5px;
-      border-width: 1px;
-      border-style: solid;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    /* WEEK-ENDS ET JOURS FÉRIÉS (MOSELLE) */
+    .fc-day-sat, 
+    .fc-day-sun, 
+    .cellule-ferie-moselle {
+      background-color: #f1f5f9 !important;
     }
+
+    /* VACANCES SCOLAIRES ZONE B */
+    .cellule-vacances-zone-b {
+      background-color: #f0f9ff !important;
+    }
+
+    .cellule-vacances-zone-b.fc-day-sat,
+    .cellule-vacances-zone-b.fc-day-sun,
+    .cellule-vacances-zone-b.cellule-ferie-moselle {
+      background-color: #e0f2fe !important;
+    }
+
+    .etiquette-ferie {
+      font-size: 11px;
+      font-weight: 800;
+      color: #b91c1c;
+      background: #fee2e2;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      display: inline-block;
+      border: 1px solid #fca5a5;
+    }
+
+    .etiquette-vacances {
+      font-size: 10px;
+      font-weight: 700;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-left: 3px;
+      display: inline-block;
+    }
+
+    /* BANDEAUX HAUTE LISIBILITÉ */
+    .fc-event, 
+    .fc-daygrid-event, 
+    .fc-daygrid-block-event {
+      white-space: normal !important;
+      min-height: 44px !important;
+      margin-top: 2px !important;
+      margin-bottom: 4px !important;
+      border-radius: 5px !important;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+      cursor: pointer;
+    }
+
+    /* Stylisation des demi-journées */
+    .event-demi-matin {
+      border-left: 6px solid #fde047 !important; /* Liseré clair rappelant le matin */
+    }
+    .event-demi-aprem {
+      border-left: 6px solid #1e293b !important; /* Liseré sombre rappelant l'après-midi */
+    }
+
+    .fc-event-main {
+      padding: 3px 7px !important;
+      white-space: normal !important;
+    }
+
     .event-card {
       display: flex;
       flex-direction: column;
       gap: 2px;
       line-height: 1.25;
-      overflow: hidden;
+      text-align: left;
     }
-    .event-title {
-      font-weight: 700;
-      font-size: 11.5px;
-      letter-spacing: 0.2px;
-      text-transform: capitalize;
-    }
-    .event-meta {
-      font-size: 10px;
-      opacity: 0.95;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .badge-referent {
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.25);
-      padding: 1px 4px;
-      border-radius: 3px;
+
+    .event-ligne-statut {
       display: inline-block;
-    }
-    .event-eleves {
-      font-size: 9.5px;
-      font-weight: 600;
-      margin-top: 1px;
-      padding-top: 2px;
-      border-top: 1px dashed rgba(255,255,255,0.4);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 3px;
+      width: fit-content;
     }
 
-    /* Week-end, fériés et vacances */
-    .fc-day-sat, .fc-day-sun { background-color: #f1f3f5 !important; }
-    .bg-vacances { background-color: #fff8e1 !important; opacity: 0.8; }
-    .bg-ferie { background-color: #fde8e8 !important; opacity: 0.8; }
+    .event-ligne-nom {
+      font-size: 13.5px;
+      font-weight: 700;
+      word-break: break-word;
+    }
 
-    /* Bulle d'information détaillée */
-    #event-tooltip {
-      position: absolute;
-      display: none;
-      z-index: 10000;
-      background: #212529;
+    .theme-sombre .event-ligne-statut {
+      background: rgba(0, 0, 0, 0.18);
+      color: #0f172a;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    .theme-sombre .event-ligne-nom {
+      color: #0f172a;
+      font-weight: 800;
+    }
+
+    .theme-clair .event-ligne-statut {
+      background: rgba(0, 0, 0, 0.25);
       color: #ffffff;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 11.5px;
-      line-height: 1.4;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      pointer-events: none;
-      max-width: 260px;
     }
-    #event-tooltip b {
-      color: #fcc419;
-      display: block;
-      margin-bottom: 2px;
-      font-size: 12px;
+    .theme-clair .event-ligne-nom {
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    /* Modales */
-    .modal-overlay {
+    /* MODAL */
+    #fenetre-voeu {
       display: none;
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.45);
-      z-index: 9999;
-      justify-content: center;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
       align-items: center;
+      justify-content: center;
     }
-    .modal-box {
+    .conteneur-formulaire {
       background: #ffffff;
-      border-radius: 8px;
-      width: 460px;
-      max-width: 92vw;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      padding: 24px;
+      border-radius: 10px;
+      width: 350px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
     }
-    .modal-box h3 { margin-top: 0; margin-bottom: 12px; color: #1f4e79; }
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #333; }
-    .form-group input, .form-group select {
-      width: 100%; padding: 7px; border: 1px solid #cccccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; background: #fff;
+    .conteneur-formulaire h3 {
+      margin: 0 0 16px 0;
+      font-size: 17px;
+      color: #0f172a;
     }
-    .modal-actions {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 14px; padding-top: 10px; border-top: 1px solid #eee;
+    .champ {
+      margin-bottom: 12px;
     }
-    .btn { padding: 7px 13px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12.5px; }
-    .btn-primary { background: #1f4e79; color: #ffffff; }
-    .btn-secondary { background: #e0e0e0; color: #333333; }
-    .btn-danger { background: #dc3545; color: #ffffff; }
-    .btn-manage { background: #495057; color: #ffffff; }
+    .champ label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: #334155;
+    }
+    .champ input, .champ select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+      background: #ffffff;
+    }
+    .barre-boutons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .groupe-actions-droite {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn-gris {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .btn-bleu {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-rouge {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
 
-    /* En-tête imprimable */
-    #print-header {
-      display: none;
-      padding: 4px 8px 8px 8px;
-      border-bottom: 2px solid #1f4e79;
-      margin-bottom: 6px;
+    /* BOUTON IMPRIMER */
+    .fc-boutonImprimer-button {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
     }
-    #print-header .print-title { font-size: 16px; font-weight: bold; color: #1f4e79; }
-    #print-header .print-sub { font-size: 12px; font-weight: 600; color: #495057; margin-top: 2px; }
+    .fc-boutonImprimer-button:hover {
+      background: #0369a1 !important;
+      border-color: #0369a1 !important;
+    }
 
-    /* MISE EN PAGE IMPRESSION A4 PAYSAGE */
+    /* IMPRESSION A4 PAYSAGE SANS COUPURE */
     @media print {
       @page {
         size: A4 landscape;
         margin: 5mm;
       }
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      #top-bar, .fc-header-toolbar, .modal-overlay, #event-tooltip {
-        display: none !important;
-      }
-      #print-header {
-        display: block !important;
+      *, *:before, *:after {
+        box-sizing: border-box !important;
       }
       html, body {
         width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
+        height: 100% !important;
+        max-height: 190mm !important;
+        overflow: hidden !important;
         background: #ffffff !important;
-        position: static !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body, #calendar-container, #calendar, .fc, .fc-view-harness, .fc-daygrid, table, tbody, tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-before: avoid !important;
+        page-break-after: avoid !important;
+      }
+      .fc-header-toolbar .fc-toolbar-chunk:first-child,
+      .fc-header-toolbar .fc-toolbar-chunk:last-child,
+      #fenetre-voeu {
+        display: none !important;
+      }
+      .fc-header-toolbar {
+        margin: 0 0 4px 0 !important;
+        padding: 0 !important;
+        justify-content: center !important;
+      }
+      .fc-toolbar-title {
+        font-size: 16px !important;
+        font-weight: 800 !important;
+      }
+      #barre-legende {
+        padding: 2px 0 4px 0 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        font-size: 9.5px !important;
+        gap: 8px !important;
+        margin-bottom: 4px !important;
+      }
+      .pastille {
+        width: 10px !important;
+        height: 10px !important;
       }
       #calendar-container {
-        position: static !important;
-        height: auto !important;
         padding: 0 !important;
+        height: auto !important;
+        flex: none !important;
       }
       #calendar {
-        height: 180mm !important;
-        width: 100% !important;
-        padding: 0 !important;
-      }
-      .fc-view-harness, .fc-timegrid {
-        height: 180mm !important;
-      }
-      .fc-scroller {
-        overflow: visible !important;
         height: auto !important;
       }
-      .fc-timegrid-slots td {
-        height: 14px !important;
+      .fc .fc-daygrid-body {
+        height: auto !important;
+      }
+      .fc .fc-daygrid-day-frame {
+        min-height: auto !important;
+        height: 100% !important;
+      }
+      .fc-event {
+        min-height: 24px !important;
+        height: auto !important;
+        margin-top: 1px !important;
+        margin-bottom: 2px !important;
+        box-shadow: none !important;
+        border: 1px solid rgba(0,0,0,0.15) !important;
+      }
+      .fc-event-main {
+        padding: 1px 4px !important;
+      }
+      .event-card {
+        gap: 1px !important;
+        line-height: 1.1 !important;
+      }
+      .event-ligne-statut {
+        font-size: 8px !important;
+        padding: 0 3px !important;
+      }
+      .event-ligne-nom {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+      }
+      .etiquette-ferie, .etiquette-vacances {
+        font-size: 8px !important;
+        padding: 0 2px !important;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Bandeau supérieur -->
-  <div id="top-bar">
-    <div class="filter-item">
-      <label for="filter-classe">Classe :</label>
-      <select id="filter-classe" onchange="refreshCalendar()">
-        <option value="">Toutes les classes</option>
-      </select>
-    </div>
-    <div class="filter-item">
-      <label for="filter-eleve">Élève :</label>
-      <select id="filter-eleve" onchange="refreshCalendar()">
-        <option value="">Tous les élèves</option>
-      </select>
-    </div>
-    <div style="margin-left: auto; display: flex; gap: 8px;">
-      <button class="btn btn-manage" onclick="openManageModal()">⚙️ Gestion Semaine</button>
-      <button class="btn btn-secondary" onclick="prepareAndPrint()">🖨️ Imprimer A4</button>
-    </div>
-  </div>
 
-  <!-- En-tête uniquement visible sur l'impression A4 -->
-  <div id="print-header">
-    <div class="print-title" id="print-header-title">PLANNING HEBDOMADAIRE</div>
-    <div class="print-sub" id="print-header-sub">Destinataire : Toutes les classes</div>
+  <div id="barre-legende">
+    <span style="font-size: 12px; text-transform: uppercase; color: #64748b; margin-right: 4px;">Légende :</span>
+    <span class="item-legende"><span class="pastille" style="background:#fbc02d;"></span> Congés</span>
+    <span class="item-legende"><span class="pastille" style="background:#1976d2;"></span> Télétravail</span>
+    <span class="item-legende"><span class="pastille" style="background:#f57c00;"></span> Déplacement</span>
+    <span class="item-legende"><span class="pastille" style="background:#2e7d32;"></span> Présent</span>
+    <span class="item-legende"><span class="pastille" style="background:#7b1fa2;"></span> Astreinte</span>
+    <span class="item-legende"><span class="pastille" style="background:#dc2626;"></span> Conflit ⚠</span>
+    <span class="item-legende"><span class="pastille pastille-vacances"></span> Vacances Zone B</span>
+    <span class="item-legende"><span class="pastille pastille-we-ferie"></span> Week-end / Férié (Moselle)</span>
   </div>
 
   <div id="calendar-container">
     <div id="calendar"></div>
   </div>
-  <div id="event-tooltip"></div>
 
-  <!-- Modale Saisie Séance -->
-  <div id="modal-overlay" class="modal-overlay">
-    <div class="modal-box">
-      <h3 id="modal-title">Programmer une séance</h3>
-      <input type="hidden" id="edit-id" />
+  <div id="fenetre-voeu">
+    <div class="conteneur-formulaire">
+      <h3 id="titre-modal">Nouveau vœu de présence</h3>
       
-      <div class="form-group">
-        <label>Activité / Entretien / Bilan</label>
-        <select id="modal-activite" onchange="toggleNewActivity(this.value)">
-          <option value="">-- Choisir une activité --</option>
-          <option value="__NEW__">➕ Créer une nouvelle activité...</option>
+      <div class="champ">
+        <label for="form-agent">Membre de l'équipe</label>
+        <select id="form-agent">
+          <option value="">Chargement...</option>
         </select>
       </div>
 
-      <div class="form-group" id="group-new-activite" style="display:none;">
-        <label>Nom de la nouvelle activité</label>
-        <input type="text" id="new-activite-nom" placeholder="Ex: Boxe, Remobilisation..." />
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <div class="form-group" style="flex:1;">
-          <label>Lieu</label>
-          <select id="modal-lieu">
-            <option value="UJPE">UJPE</option>
-            <option value="UEAJ">UEAJ</option>
-            <option value="Extérieur">Extérieur</option>
-          </select>
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label>Référent</label>
-          <select id="modal-referent">
-            <option value="">-- Aucun --</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <div class="form-group" style="flex:1;">
-          <label>Heure de début</label>
-          <select id="modal-time-start">
-            <option value="08:00">08 h 00</option>
-            <option value="08:30">08 h 30</option>
-            <option value="09:00">09 h 00</option>
-            <option value="09:30">09 h 30</option>
-            <option value="10:00">10 h 00</option>
-            <option value="10:30">10 h 30</option>
-            <option value="11:00">11 h 00</option>
-            <option value="11:30">11 h 30</option>
-            <option value="12:00">12 h 00</option>
-            <option value="12:30">12 h 30</option>
-            <option value="13:00">13 h 00</option>
-            <option value="13:30">13 h 30</option>
-            <option value="14:00">14 h 00</option>
-            <option value="14:30">14 h 30</option>
-            <option value="15:00">15 h 00</option>
-            <option value="15:30">15 h 30</option>
-            <option value="16:00">16 h 00</option>
-            <option value="16:30">16 h 30</option>
-            <option value="17:00">17 h 00</option>
-            <option value="17:30">17 h 30</option>
-            <option value="18:00">18 h 00</option>
-            <option value="18:30">18 h 30</option>
-          </select>
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label>Durée</label>
-          <select id="modal-duree">
-            <option value="30">0 h 30</option>
-            <option value="60" selected>1 h 00</option>
-            <option value="90">1 h 30</option>
-            <option value="120">2 h 00</option>
-            <option value="150">2 h 30</option>
-            <option value="180">3 h 00</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Affecter une classe</label>
-        <select id="modal-classe" onchange="onModalClasseChange(this.value)">
-          <option value="">-- Aucun groupe automatique --</option>
-          <option value="__ALL_CLASSES__">⭐ Toutes les classes</option>
-          <option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>
+      <div class="champ">
+        <label for="form-statut">Statut</label>
+        <select id="form-statut">
+          <option value="CONGES">CONGES</option>
+          <option value="TELETRAVAIL">TELETRAVAIL</option>
+          <option value="EN DEPLACEMENT">EN DEPLACEMENT</option>
+          <option value="PRESENT">PRESENT</option>
+          <option value="ASTREINTE">ASTREINTE</option>
         </select>
       </div>
 
-      <div class="form-group" id="group-new-classe" style="display:none;">
-        <label>Nom de la nouvelle classe</label>
-        <input type="text" id="new-classe-nom" placeholder="Ex: Groupe Relais, 3e A..." />
+      <div class="champ">
+        <label for="form-debut">Date de début</label>
+        <input type="date" id="form-debut" />
       </div>
 
-      <div class="form-group">
-        <label>Ou affecter un élève</label>
-        <select id="modal-eleve">
-          <option value="">-- Aucun élève --</option>
-          <option value="__ALL_ELEVES__">⭐ Tous les élèves de l'effectif</option>
+      <div class="champ">
+        <label for="form-fin">Date de fin</label>
+        <input type="date" id="form-fin" />
+      </div>
+
+      <!-- SÉLECTION DU CRÉNEAU (MATIN / APRÈS-MIDI) -->
+      <div class="champ" id="conteneur-creneau">
+        <label for="form-creneau">Plage horaire</label>
+        <select id="form-creneau">
+          <option value="Journée">Journée entière</option>
+          <option value="Matin">Matin</option>
+          <option value="Après-midi">Après-midi</option>
         </select>
       </div>
 
-      <div class="modal-actions">
-        <button id="btn-delete" class="btn btn-danger" style="display:none;" onclick="deleteSession()">Supprimer</button>
-        <div style="display:flex; gap:8px; margin-left:auto;">
-          <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-          <button class="btn btn-primary" onclick="saveSession()">Enregistrer</button>
+      <div class="barre-boutons">
+        <button type="button" class="btn btn-rouge" id="btn-supprimer" style="display: none;">Supprimer</button>
+        <div class="groupe-actions-droite">
+          <button type="button" class="btn btn-gris" id="btn-annuler">Annuler</button>
+          <button type="button" class="btn btn-bleu" id="btn-valider">Enregistrer</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modale Gestion de Semaine -->
-  <div id="modal-manage-overlay" class="modal-overlay">
-    <div class="modal-box">
-      <h3>Gestion hebdomadaire</h3>
-      <p style="font-size: 12px; color: #666; margin-top:-6px;" id="manage-week-label">Semaine affichée</p>
-
-      <div style="background:#f1f3f5; padding:10px; border-radius:6px; margin-bottom:14px;">
-        <label style="font-size: 12px; font-weight: bold; color: #1f4e79; display:block; margin-bottom:4px;">
-          📥 Recopier une semaine précédente
-        </label>
-        <div style="display:flex; gap:8px;">
-          <select id="manage-source-week" style="flex:1; padding:6px; font-size:12px; border-radius:4px; border:1px solid #ccc;">
-            <option value="1">La semaine précédente (S - 1)</option>
-            <option value="2">Il y a 2 semaines (S - 2)</option>
-            <option value="3">Il y a 3 semaines (S - 3)</option>
-            <option value="4">Il y a 4 semaines (S - 4)</option>
-          </select>
-          <button class="btn btn-primary" onclick="copyPreviousWeek()">Recopier</button>
-        </div>
-        <small style="display:block; color:#666; font-size:10.5px; margin-top:4px;">
-          * Seuls les élèves toujours présents dans l'effectif actuel sont réinscrits.
-        </small>
-      </div>
-
-      <div style="background:#fff5f5; border:1px solid #ffe3e3; padding:10px; border-radius:6px;">
-        <label style="font-size: 12px; font-weight: bold; color: #c92a2a; display:block; margin-bottom:6px;">
-          🗑️ Supprimer les séances (choix par jour)
-        </label>
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; font-size:12px;">
-          <label><input type="checkbox" id="del-day-1" checked> Lundi</label>
-          <label><input type="checkbox" id="del-day-2" checked> Mardi</label>
-          <label><input type="checkbox" id="del-day-3" checked> Mercredi</label>
-          <label><input type="checkbox" id="del-day-4" checked> Jeudi</label>
-          <label><input type="checkbox" id="del-day-5" checked> Vendredi</label>
-          <label><input type="checkbox" id="del-day-6"> Samedi</label>
-        </div>
-        <div style="margin-top:10px; text-align:right;">
-          <button class="btn btn-danger" onclick="deleteSelectedDays()">Vider les jours cochés</button>
-        </div>
-      </div>
-
-      <div class="modal-actions" style="margin-top:14px; padding-top:10px;">
-        <button class="btn btn-secondary" style="margin-left:auto;" onclick="closeManageModal()">Fermer</button>
       </div>
     </div>
   </div>
 
   <script>
-    let calendar;
-    let rawSeances = [];
-    let officialEvents = [];
-    let elevesList = [];
-    let referentsList = [];
-    let inscriptionsList = [];
-    let selectedDateStr = "";
+    let calendar = null;
+    const annuaireAgents = new Map();
+    let cachePresences = [];
+    let ligneSelectionneeId = null;
+    let nomTableEquipeDetectee = 'Equipe_en_DTPJJ_de_Moselle';
 
-    const CLASS_COLORS = [
-      { bg: '#1f4e79', border: '#163857' },
-      { bg: '#2b8a3e', border: '#237032' },
-      { bg: '#d9480f', border: '#b83b0a' },
-      { bg: '#6741d9', border: '#5333b2' },
-      { bg: '#0b7285', border: '#085867' },
-      { bg: '#a61e4d', border: '#86183e' },
-      { bg: '#e67700', border: '#bf6300' }
+    const PLAGES_VACANCES_ZONE_B = [
+      { debut: "2026-10-17", fin: "2026-11-01", nom: "Toussaint" },
+      { debut: "2026-12-19", fin: "2027-01-03", nom: "Noël" },
+      { debut: "2027-02-20", fin: "2027-03-07", nom: "Hiver" },
+      { debut: "2027-04-17", fin: "2027-05-02", nom: "Printemps" },
+      { debut: "2027-05-06", fin: "2027-05-09", nom: "Pont Ascension" },
+      { debut: "2027-07-03", fin: "2027-09-01", nom: "Été" }
     ];
-    const classColorMap = new Map();
 
-    function getClassColor(classeName) {
-      if (!classeName) return CLASS_COLORS[0];
-      if (!classColorMap.has(classeName)) {
-        const nextColor = CLASS_COLORS[classColorMap.size % CLASS_COLORS.length];
-        classColorMap.set(classeName, nextColor);
+    function estJourVacances(dateStr) {
+      for (const p of PLAGES_VACANCES_ZONE_B) {
+        if (dateStr >= p.debut && dateStr <= p.fin) return p.nom;
       }
-      return classColorMap.get(classeName);
+      return null;
     }
 
-    function toGristSec(d) { return Math.floor(d.getTime() / 1000); }
-    function fromGristDate(v) {
-      if (!v) return null;
-      return typeof v === 'number' ? new Date(v * 1000) : new Date(v);
+    const DICT_FERIES_MOSELLE = {
+      "2026-01-01": "Jour de l'An",
+      "2026-04-03": "Vendredi Saint (Moselle)",
+      "2026-04-06": "Lundi de Pâques",
+      "2026-05-01": "Fête du Travail",
+      "2026-05-08": "Victoire 1945",
+      "2026-05-14": "Ascension",
+      "2026-05-25": "Lundi de Pentecôte",
+      "2026-07-14": "Fête Nationale",
+      "2026-08-15": "Assomption",
+      "2026-11-01": "Toussaint",
+      "2026-11-11": "Armistice 1918",
+      "2026-12-25": "Noël",
+      "2026-12-26": "Saint-Étienne (Moselle)",
+      "2027-01-01": "Jour de l'An",
+      "2027-03-26": "Vendredi Saint (Moselle)",
+      "2027-03-29": "Lundi de Pâques",
+      "2027-05-01": "Fête du Travail",
+      "2027-05-06": "Ascension",
+      "2027-05-08": "Victoire 1945",
+      "2027-05-17": "Lundi de Pentecôte",
+      "2027-07-14": "Fête Nationale",
+      "2027-08-15": "Assomption",
+      "2027-11-01": "Toussaint",
+      "2027-11-11": "Armistice 1918",
+      "2027-12-25": "Noël",
+      "2027-12-26": "Saint-Étienne (Moselle)"
+    };
+
+    const COULEURS = {
+      'CONFLIT': '#dc2626',
+      'CONGES': '#fbc02d',
+      'CONGÉS': '#fbc02d',
+      'TELETRAVAIL': '#1976d2',
+      'TÉLÉTRAVAIL': '#1976d2',
+      'EN DEPLACEMENT': '#f57c00',
+      'DÉPLACEMENT': '#f57c00',
+      'PRESENT': '#2e7d32',
+      'PRÉSENT': '#2e7d32',
+      'ASTREINTE': '#7b1fa2'
+    };
+
+    function formatIsoDateLocal(d) {
+      const annee = d.getFullYear();
+      const mois = String(d.getMonth() + 1).padStart(2, '0');
+      const jour = String(d.getDate()).padStart(2, '0');
+      return `${annee}-${mois}-${jour}`;
     }
-    function addDays(d, n) {
-      const res = new Date(d);
-      res.setDate(res.getDate() + n);
-      return res;
-    }
 
-    function toggleNewActivity(val) {
-      const isNew = val === '__NEW__';
-      document.getElementById('group-new-activite').style.display = isNew ? 'block' : 'none';
-      if (isNew) document.getElementById('new-activite-nom').focus();
-    }
-
-    function onModalClasseChange(val) {
-      const isNew = val === '__NEW_CLASSE__';
-      document.getElementById('group-new-classe').style.display = isNew ? 'block' : 'none';
-      if (isNew) document.getElementById('new-classe-nom').focus();
-      if (val && val !== '') document.getElementById('modal-eleve').value = '';
-    }
-
-    function prepareAndPrint() {
-      if (!calendar) return;
-      const view = calendar.view;
-      const startD = view.currentStart;
-      const endD = addDays(view.currentEnd, -1);
-
-      const fStart = startD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-      const fEnd = endD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-      document.getElementById('print-header-title').textContent = `PLANNING — Semaine du ${fStart} au ${fEnd}`;
-
-      const fClasse = document.getElementById('filter-classe').value;
-      const fEleveSelect = document.getElementById('filter-eleve');
-      let sub = "Destinataire : Toutes les classes";
-
-      if (fEleveSelect.value) {
-        sub = `Destinataire : Élève ${fEleveSelect.options[fEleveSelect.selectedIndex].text}`;
-      } else if (fClasse) {
-        sub = `Destinataire : Classe ${fClasse}`;
+    function parseDate(val) {
+      if (!val) return null;
+      if (typeof val === 'string') {
+        const iso = val.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (iso) return iso[1];
+        const fr = val.match(/^(\d{2})[-/](\d{2})[-/](\d{4})/);
+        if (fr) return `${fr[3]}-${fr[2]}-${fr[1]}`;
       }
-      document.getElementById('print-header-sub').textContent = sub;
-
-      calendar.updateSize();
-      window.print();
+      if (typeof val === 'number') {
+        const ts = val < 10000000000 ? val * 1000 : val;
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) return formatIsoDateLocal(d);
+      }
+      return null;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function addDays(strDate, nb) {
+      if (!strDate) return strDate;
+      const d = new Date(strDate);
+      d.setDate(d.getDate() + nb);
+      return formatIsoDateLocal(d);
+    }
+
+    function trouverValeur(row, cles) {
+      if (!row) return null;
+      for (const k of cles) {
+        if (row[k] !== undefined && row[k] !== null) return row[k];
+      }
+      const reelles = Object.keys(row);
+      for (const k of cles) {
+        const pur = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const r of reelles) {
+          if (r.toLowerCase().replace(/[^a-z0-9]/g, '') === pur) {
+            if (row[r] !== undefined && row[r] !== null) return row[r];
+          }
+        }
+      }
+      return null;
+    }
+
+    const modalEl = document.getElementById('fenetre-voeu');
+    const titreModal = document.getElementById('titre-modal');
+    const selectAgent = document.getElementById('form-agent');
+    const selectStatut = document.getElementById('form-statut');
+    const inputDebut = document.getElementById('form-debut');
+    const inputFin = document.getElementById('form-fin');
+    const conteneurCreneau = document.getElementById('conteneur-creneau');
+    const selectCreneau = document.getElementById('form-creneau');
+    const btnSupprimer = document.getElementById('btn-supprimer');
+
+    // Masquage automatique du créneau pour l'astreinte
+    selectStatut.addEventListener('change', function() {
+      if (this.value === 'ASTREINTE') {
+        conteneurCreneau.style.display = 'none';
+        selectCreneau.value = 'Journée';
+      } else {
+        conteneurCreneau.style.display = 'block';
+      }
+    });
+
+    function fermer() {
+      modalEl.style.display = 'none';
+      ligneSelectionneeId = null;
+      btnSupprimer.style.display = 'none';
+      if (calendar) calendar.unselect();
+    }
+
+    document.getElementById('btn-annuler').addEventListener('click', fermer);
+
+    btnSupprimer.addEventListener('click', async function() {
+      if (!ligneSelectionneeId) return;
+      if (confirm("Supprimer ce vœu de présence ?")) {
+        try {
+          await grist.docApi.applyUserActions([['RemoveRecord', 'Presences', ligneSelectionneeId]]);
+          fermer();
+          await toutRecharger();
+        } catch(e) {
+          alert("Erreur lors de la suppression.");
+        }
+      }
+    });
+
+    function majSelectAgents() {
+      const choix = selectAgent.value;
+      selectAgent.innerHTML = '<option value="">-- Choisir un membre --</option>';
+
+      const vu = new Set();
+      const liste = Array.from(annuaireAgents.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+
+      for (const [id, label] of liste) {
+        if (!vu.has(label) && !label.startsWith('Agent #')) {
+          vu.add(label);
+          const opt = document.createElement('option');
+          opt.value = String(id);
+          opt.textContent = label;
+          selectAgent.appendChild(opt);
+        }
+      }
+
+      for (const [id, label] of liste) {
+        if (!vu.has(label)) {
+          vu.add(label);
+          const opt = document.createElement('option');
+          opt.value = String(id);
+          opt.textContent = label;
+          selectAgent.appendChild(opt);
+        }
+      }
+
+      if (choix && annuaireAgents.has(parseInt(choix, 10))) {
+        selectAgent.value = choix;
+      }
+    }
+
+    async function chargerAnnuaire() {
+      const candidatsTables = [
+        nomTableEquipeDetectee,
+        'Equipe_en_DTPJJ_de_Moselle',
+        'EQUIPE_EN_DTPJJ_DE_MOSELLE',
+        'INSCRITS_DTPJJ_MOSELLE',
+        'Inscrits_DTPJJ_Moselle',
+        'INSCRIRE_DANS_EQUIPE',
+        'INSCRIPTION_EQUIPE_DTPJJ'
+      ];
+
+      for (const nomT of candidatsTables) {
+        try {
+          const t = await grist.docApi.fetchTable(nomT);
+          if (t && t.id && t.id.length > 0) {
+            nomTableEquipeDetectee = nomT;
+
+            const colNom = t.Nom || t.nom || [];
+            const colPrenom = t.Prenom || t.prenom || [];
+            const colFonc = t.Fonction || t.fonction || [];
+            const colIdentite = t.Identite || t.identite || t['Identité'] || [];
+
+            for (let i = 0; i < t.id.length; i++) {
+              const rowId = t.id[i];
+              let lib = '';
+
+              if (colIdentite && colIdentite[i]) {
+                lib = String(colIdentite[i]).trim();
+              }
+              if (!lib) {
+                const nom = colNom[i] || '';
+                const prenom = colPrenom[i] || '';
+                const fonc = colFonc[i] || '';
+                lib = `${nom} ${prenom}${fonc ? ' - ' + fonc : ''}`.trim();
+              }
+
+              if (lib && !lib.includes('NaN')) {
+                annuaireAgents.set(rowId, lib);
+              }
+            }
+            majSelectAgents();
+            return;
+          }
+        } catch(e) {}
+      }
+    }
+
+    async function toutRecharger() {
+      await chargerAnnuaire();
+
+      try {
+        const p = await grist.docApi.fetchTable('Presences');
+        if (p && p.id && p.id.length > 0) {
+          const rows = [];
+          for (let i = 0; i < p.id.length; i++) {
+            rows.push({
+              id: p.id[i],
+              qui: p.qui ? p.qui[i] : null,
+              Date_debut: p.Date_debut ? p.Date_debut[i] : (p['Date début'] ? p['Date début'][i] : null),
+              Date_fin: p.Date_fin ? p.Date_fin[i] : (p['Date fin'] ? p['Date fin'][i] : null),
+              STATUT: p.STATUT ? p.STATUT[i] : (p.Statut ? p.Statut[i] : ''),
+              Statut_conflit: p.Statut_conflit ? p.Statut_conflit[i] : (p.Statut2 ? p.Statut2[i] : 'OK'),
+              Agent: p.Agent ? p.Agent[i] : (p.Identite ? p.Identite[i] : null),
+              Creneau: p.Creneau ? p.Creneau[i] : (p.creneau ? p.creneau[i] : (p.Plage ? p.Plage[i] : 'Journée'))
+            });
+          }
+          cachePresences = rows;
+          afficherRecords(rows);
+          return;
+        }
+      } catch(e) {}
+
+      try {
+        const sel = await grist.docApi.fetchSelectedTable();
+        if (Array.isArray(sel) && sel.length > 0) {
+          cachePresences = sel;
+          afficherRecords(sel);
+        }
+      } catch(e2) {}
+    }
+
+    function afficherRecords(records) {
+      if (!records || !calendar) return;
+
+      records.forEach(r => {
+        const qId = (typeof r.qui === 'number') ? r.qui : (r.qui && r.qui.id ? r.qui.id : parseInt(r.qui, 10));
+        const txt = trouverValeur(r, ['Agent', 'Identite']);
+
+        if (!isNaN(qId) && typeof txt === 'string' && txt.trim() && !txt.startsWith('Agent #') && !txt.includes('NaN')) {
+          annuaireAgents.set(qId, txt.trim());
+        }
+      });
+      majSelectAgents();
+
+      const cumulAutoriseAstreinte = ['TELETRAVAIL', 'TÉLÉTRAVAIL', 'EN DEPLACEMENT', 'DÉPLACEMENT', 'PRESENT', 'PRÉSENT'];
+
+      const valides = records.map(r => {
+        const debut = parseDate(trouverValeur(r, ['Date début', 'Date_debut', 'date_debut']));
+        const fin = parseDate(trouverValeur(r, ['Date fin', 'Date_fin', 'date_fin'])) || debut;
+        const q = trouverValeur(r, ['qui', 'Agent']);
+        const txt = trouverValeur(r, ['Agent', 'Identite']);
+        const creneau = String(trouverValeur(r, ['Creneau', 'creneau', 'Plage']) || 'Journée').trim();
+
+        const qId = (typeof q === 'number') ? q : (q && q.id ? q.id : parseInt(q, 10));
+        let nomAffiche = '';
+
+        if (!isNaN(qId) && annuaireAgents.has(qId)) {
+          nomAffiche = annuaireAgents.get(qId);
+        } else if (typeof txt === 'string' && txt.trim() && !txt.startsWith('Agent #') && !txt.includes('NaN')) {
+          nomAffiche = txt.trim();
+        } else if (!isNaN(qId)) {
+          nomAffiche = annuaireAgents.get(qId) || `Agent #${qId}`;
+        } else {
+          nomAffiche = 'Collaborateur';
+        }
+
+        const statut = String(trouverValeur(r, ['STATUT', 'Statut']) || '').trim();
+        const conf = String(trouverValeur(r, ['Statut conflit', 'Statut_conflit', 'Statut2']) || 'OK').trim();
+
+        return {
+          id: r.id,
+          agentId: isNaN(qId) ? null : qId,
+          nomAffiche: nomAffiche,
+          debut: debut,
+          fin: fin,
+          statut: statut,
+          creneau: creneau,
+          statutConflit: conf
+        };
+      }).filter(r => Boolean(r.debut));
+
+      const eventsPresences = valides.map((r, index, array) => {
+        const sNorm = r.statut.toUpperCase();
+        const confNorm = r.statutConflit.toUpperCase();
+
+        const doublonInterdit = array.some((autre, autreIdx) => {
+          if (index === autreIdx) return false;
+          if (!r.agentId || r.agentId !== autre.agentId) return false;
+
+          const chevauche = (r.debut <= autre.fin && r.fin >= autre.debut);
+          if (!chevauche) return false;
+
+          const autreSNorm = autre.statut.toUpperCase();
+          const unAstreinte = sNorm.includes('ASTREINTE');
+          const autreAstreinte = autreSNorm.includes('ASTREINTE');
+
+          // Tolérance 1 : Astreinte autorisée avec présence
+          if (unAstreinte && cumulAutoriseAstreinte.some(c => autreSNorm.includes(c))) return false;
+          if (autreAstreinte && cumulAutoriseAstreinte.some(c => sNorm.includes(c))) return false;
+
+          // Tolérance 2 : Matin vs Après-midi ne sont pas en conflit
+          const rEstMatin = r.creneau.toLowerCase().includes('matin');
+          const rEstAprem = r.creneau.toLowerCase().includes('apr');
+          const autreEstMatin = autre.creneau.toLowerCase().includes('matin');
+          const autreEstAprem = autre.creneau.toLowerCase().includes('apr');
+
+          if ((rEstMatin && autreEstAprem) || (rEstAprem && autreEstMatin)) return false;
+
+          return true;
+        });
+
+        const estEnConflit = confNorm.includes('CONFLIT') || doublonInterdit;
+
+        let couleur = '#1976d2';
+        let estJaune = false;
+
+        if (estEnConflit) {
+          couleur = COULEURS['CONFLIT'];
+        } else {
+          for (const [cle, val] of Object.entries(COULEURS)) {
+            if (sNorm.includes(cle)) {
+              couleur = val;
+              if (cle.includes('CONG')) estJaune = true;
+              break;
+            }
+          }
+        }
+
+        // Mention du créneau dans le badge
+        let libelleCreneau = '';
+        let classeDemi = '';
+        if (sNorm.includes('ASTREINTE')) {
+          libelleCreneau = '';
+        } else if (r.creneau.toLowerCase().includes('matin')) {
+          libelleCreneau = ' (MATIN)';
+          classeDemi = 'event-demi-matin';
+        } else if (r.creneau.toLowerCase().includes('apr')) {
+          libelleCreneau = ' (APRÈS-MIDI)';
+          classeDemi = 'event-demi-aprem';
+        }
+
+        const badgeTexte = estEnConflit ? 'CONFLIT ⚠' : ((r.statut || 'PRESENCE') + libelleCreneau);
+
+        return {
+          id: String(r.id),
+          title: `[${badgeTexte}] ${r.nomAffiche}`,
+          start: r.debut,
+          end: addDays(r.fin, 1),
+          backgroundColor: couleur,
+          borderColor: couleur,
+          allDay: true,
+          classNames: [classeDemi],
+          extendedProps: {
+            rowId: r.id,
+            agentId: r.agentId,
+            nomAgent: r.nomAffiche,
+            statutInitial: r.statut,
+            creneauInitial: r.creneau,
+            statutBadge: badgeTexte,
+            debutReel: r.debut,
+            finReelle: r.fin,
+            estJaune: estJaune,
+            periodeTexte: `${r.debut} au ${r.fin}`
+          }
+        };
+      });
+
+      calendar.removeAllEvents();
+      calendar.addEventSource(eventsPresences);
+    }
+
+    document.getElementById('btn-valider').addEventListener('click', async function() {
+      const agentVal = selectAgent.value;
+      const statut = selectStatut.value;
+      const debut = inputDebut.value;
+      const fin = inputFin.value;
+      const creneau = (statut === 'ASTREINTE') ? 'Journée' : selectCreneau.value;
+
+      if (!agentVal || !debut || !fin) {
+        alert("Veuillez sélectionner un membre et des dates valides.");
+        return;
+      }
+
+      const agentNum = parseInt(agentVal, 10);
+      const refAgent = isNaN(agentNum) ? agentVal : agentNum;
+
+      const optionChoisie = selectAgent.options[selectAgent.selectedIndex];
+      if (optionChoisie && optionChoisie.textContent) {
+        annuaireAgents.set(refAgent, optionChoisie.textContent.trim());
+      }
+
+      const tsDebut = Math.floor(new Date(debut + 'T12:00:00Z').getTime() / 1000);
+      const tsFin = Math.floor(new Date(fin + 'T12:00:00Z').getTime() / 1000);
+
+      const champsRecord = {
+        qui: refAgent,
+        STATUT: statut,
+        Date_debut: tsDebut,
+        Date_fin: tsFin,
+        Creneau: creneau
+      };
+
+      try {
+        if (ligneSelectionneeId) {
+          await grist.docApi.applyUserActions([['UpdateRecord', 'Presences', ligneSelectionneeId, champsRecord]]);
+        } else {
+          await grist.docApi.applyUserActions([['AddRecord', 'Presences', null, champsRecord]]);
+        }
+        fermer();
+        await toutRecharger();
+      } catch(e) {
+        // En cas de champ Creneau manquant dans la table
+        delete champsRecord.Creneau;
+        try {
+          if (ligneSelectionneeId) {
+            await grist.docApi.applyUserActions([['UpdateRecord', 'Presences', ligneSelectionneeId, champsRecord]]);
+          } else {
+            await grist.docApi.applyUserActions([['AddRecord', 'Presences', null, champsRecord]]);
+          }
+          fermer();
+          await toutRecharger();
+        } catch(e2) {
+          alert("Erreur lors de l'enregistrement dans Grist.");
+        }
+      }
+    });
+
+    function initialiser() {
       const calendarEl = document.getElementById('calendar');
-      const tooltip = document.getElementById('event-tooltip');
-
       calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
         locale: 'fr',
-        initialView: 'timeGridWeek',
         firstDay: 1,
-        slotMinTime: '08:00:00',
-        slotMaxTime: '18:30:00',
-        slotDuration: '00:30:00',
-        allDaySlot: false,
-        displayEventTime: false,
+        selectable: true,
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
-          right: 'timeGridWeek,timeGridDay'
+          right: 'boutonImprimer dayGridMonth,dayGridWeek'
         },
-        buttonText: { today: "Aujourd'hui", week: 'Semaine', day: 'Jour' },
-        editable: true,
-        selectable: true,
+        customButtons: {
+          boutonImprimer: {
+            text: '🖨️ Imprimer',
+            click: function() {
+              window.print();
+            }
+          }
+        },
+        buttonText: {
+          today: "Aujourd'hui",
+          month: 'Mois',
+          week: 'Semaine'
+        },
+
+        dayCellClassNames: function(arg) {
+          const classes = [];
+          const dStr = formatIsoDateLocal(arg.date);
+          if (DICT_FERIES_MOSELLE[dStr]) classes.push('cellule-ferie-moselle');
+          if (estJourVacances(dStr)) classes.push('cellule-vacances-zone-b');
+          return classes;
+        },
+
+        dayCellContent: function(arg) {
+          const dStr = formatIsoDateLocal(arg.date);
+          const div = document.createElement('div');
+          div.style.display = 'flex';
+          div.style.alignItems = 'center';
+          div.style.justifyContent = 'space-between';
+          div.style.padding = '2px 4px';
+
+          const spanNum = document.createElement('span');
+          spanNum.textContent = arg.dayNumberText;
+          div.appendChild(spanNum);
+
+          const nomFerie = DICT_FERIES_MOSELLE[dStr];
+          if (nomFerie) {
+            const badgeF = document.createElement('span');
+            badgeF.className = 'etiquette-ferie';
+            badgeF.textContent = nomFerie;
+            badgeF.title = `Jour férié : ${nomFerie}`;
+            div.appendChild(badgeF);
+          } else {
+            const nomVac = estJourVacances(dStr);
+            if (nomVac && arg.date.getDay() === 1) {
+              const badgeV = document.createElement('span');
+              badgeV.className = 'etiquette-vacances';
+              badgeV.textContent = 'Vacances B';
+              div.appendChild(badgeV);
+            }
+          }
+
+          return { domNodes: [div] };
+        },
 
         eventContent: function(arg) {
-          if (arg.event.display === 'background') return null;
-          const p = arg.event.extendedProps || {};
+          const badge = arg.event.extendedProps.statutBadge || '';
+          const nom = arg.event.extendedProps.nomAgent || arg.event.title;
+          const estJaune = arg.event.extendedProps.estJaune;
 
-          let html = `<div class="event-card">`;
-          html += `<div class="event-title">${arg.event.title}</div>`;
+          const conteneur = document.createElement('div');
+          conteneur.className = `event-card ${estJaune ? 'theme-sombre' : 'theme-clair'}`;
+          conteneur.title = `${nom}\n${badge}\n${arg.event.extendedProps.periodeTexte || ''}`;
 
-          let meta = [];
-          if (p.lieu) meta.push(`📍 ${p.lieu}`);
-          if (p.referent) meta.push(`<span class="badge-referent">🧭 ${p.referent}</span>`);
-          if (p.classe) meta.push(`🏷️ ${p.classe}`);
-          if (meta.length) html += `<div class="event-meta">${meta.join(' • ')}</div>`;
-
-          if (p.eleves && p.eleves.length > 0) {
-            html += `<div class="event-eleves">👥 ${p.eleves.join(', ')}</div>`;
-          }
-          html += `</div>`;
-
-          return { html: html };
-        },
-
-        eventMouseEnter: function(info) {
-          if (info.event.display === 'background') return;
-          const p = info.event.extendedProps || {};
-          const startStr = info.event.start ? info.event.start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
-          const endStr = info.event.end ? info.event.end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
-
-          let content = `<b>${info.event.title}</b>`;
-          content += `⏰ ${startStr} - ${endStr}<br/>`;
-          if (p.lieu) content += `📍 Lieu : ${p.lieu}<br/>`;
-          if (p.referent) content += `🧭 Référent : ${p.referent}<br/>`;
-          if (p.classe) content += `🏷️ Classe : ${p.classe}<br/>`;
-          if (p.eleves && p.eleves.length > 0) {
-            content += `👥 Élèves : ${p.eleves.join(', ')}`;
-          }
-
-          tooltip.innerHTML = content;
-          tooltip.style.display = 'block';
-
-          const rect = info.el.getBoundingClientRect();
-          tooltip.style.left = (rect.left + 10) + 'px';
-          tooltip.style.top = (rect.bottom + window.scrollY + 6) + 'px';
-        },
-        eventMouseLeave: function() {
-          tooltip.style.display = 'none';
+          conteneur.innerHTML = `
+            <div><span class="event-ligne-statut">${badge}</span></div>
+            <div class="event-ligne-nom">${nom}</div>
+          `;
+          return { domNodes: [conteneur] };
         },
 
         select: function(info) {
-          openCreateModal(info);
-          calendar.unselect();
+          ligneSelectionneeId = null;
+          titreModal.textContent = "Nouveau vœu de présence";
+          btnSupprimer.style.display = "none";
+          inputDebut.value = info.startStr;
+          const f = new Date(info.endStr);
+          f.setDate(f.getDate() - 1);
+          inputFin.value = formatIsoDateLocal(f);
+          selectCreneau.value = "Journée";
+          conteneurCreneau.style.display = (selectStatut.value === 'ASTREINTE') ? 'none' : 'block';
+          majSelectAgents();
+          modalEl.style.display = 'flex';
         },
+
         eventClick: function(info) {
-          if (info.event.display === 'background' || String(info.event.id).startsWith('off_')) return;
-          tooltip.style.display = 'none';
-          openEditModal(info.event.id);
+          const props = info.event.extendedProps;
+          ligneSelectionneeId = props.rowId;
+          titreModal.textContent = "Modifier la présence";
+          btnSupprimer.style.display = "inline-block";
+          inputDebut.value = props.debutReel;
+          inputFin.value = props.finReelle;
+          majSelectAgents();
+          if (props.agentId) {
+            selectAgent.value = String(props.agentId);
+          }
+          const sInit = props.statutInitial.toUpperCase();
+          for (let opt of selectStatut.options) {
+            if (sInit.includes(opt.value)) {
+              selectStatut.value = opt.value;
+              break;
+            }
+          }
+          if (sInit.includes('ASTREINTE')) {
+            conteneurCreneau.style.display = 'none';
+          } else {
+            conteneurCreneau.style.display = 'block';
+            selectCreneau.value = props.creneauInitial || 'Journée';
+          }
+          modalEl.style.display = 'flex';
         },
-        eventDrop: function(info) { updateTimes(info.event); },
-        eventResize: function(info) { updateTimes(info.event); }
+        events: []
       });
 
       calendar.render();
 
       grist.ready({ requiredAccess: 'full' });
-      loadReferences();
+
+      toutRecharger();
 
       grist.onRecords(function(records) {
-        rawSeances = records || [];
-        populateActivityList();
-        loadInscriptionsAndRefresh();
+        if (records && records.length > 0) {
+          const aDesDates = records.some(r => trouverValeur(r, ['Date début', 'Date_debut', 'date_debut']) !== null);
+          if (aDesDates) {
+            afficherRecords(records);
+            return;
+          }
+        }
+        toutRecharger();
       });
 
-      // Recalcule le format dès que la fenêtre est stable
-      setTimeout(() => { if (calendar) calendar.updateSize(); }, 300);
-      window.addEventListener('resize', () => { if (calendar) calendar.updateSize(); });
-    });
-
-    function resolveReferentName(refField) {
-      if (!refField) return '';
-      let targetId = null;
-      if (Array.isArray(refField)) {
-        targetId = refField.find(x => typeof x === 'number');
-      } else if (typeof refField === 'number') {
-        targetId = refField;
-      } else if (typeof refField === 'string') {
-        const found = referentsList.find(r => r.prenom.toLowerCase() === refField.toLowerCase());
-        return found ? found.prenom : refField;
-      }
-
-      if (targetId) {
-        const found = referentsList.find(r => r.id === targetId);
-        if (found) return found.prenom;
-      }
-      return '';
+      window.addEventListener('focus', toutRecharger);
     }
 
-    async function loadReferences() {
-      try {
-        const off = await grist.docApi.fetchTable('Calendrier_Officiel');
-        officialEvents = [];
-        if (off && off.id) {
-          for (let i = 0; i < off.id.length; i++) {
-            const deb = fromGristDate(off.Date_Debut[i]);
-            const fin = fromGristDate(off.Date_Fin[i]) || deb;
-            const type = off.Type ? off.Type[i] : '';
-            const isVac = (type === 'Vacances scolaires' || type === 'Vacances');
-
-            if (deb) {
-              const finInclusive = addDays(fin, 1);
-              officialEvents.push({
-                id: 'off_bg_' + off.id[i],
-                start: deb, end: finInclusive,
-                allDay: true, display: 'background',
-                className: isVac ? 'bg-vacances' : 'bg-ferie'
-              });
-            }
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const refs = await grist.docApi.fetchTable('Referents');
-        referentsList = [];
-        const refSelect = document.getElementById('modal-referent');
-        refSelect.innerHTML = '<option value="">-- Aucun --</option>';
-        if (refs && refs.id) {
-          for (let i = 0; i < refs.id.length; i++) {
-            const prenom = refs.Prenom ? refs.Prenom[i] : (refs.Nom ? refs.Nom[i] : ('Réf ' + refs.id[i]));
-            referentsList.push({ id: refs.id[i], prenom: prenom });
-            const opt = document.createElement('option');
-            opt.value = refs.id[i];
-            opt.textContent = prenom;
-            refSelect.appendChild(opt);
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const elvs = await grist.docApi.fetchTable('Eleves');
-        elevesList = [];
-        const classesSet = new Set();
-        const modEleve = document.getElementById('modal-eleve');
-        const filterEleve = document.getElementById('filter-eleve');
-        modEleve.innerHTML = '<option value="">-- Aucun élève --</option><option value="__ALL_ELEVES__">⭐ Tous les élèves de l\'effectif</option>';
-        filterEleve.innerHTML = '<option value="">Tous les élèves</option>';
-
-        if (elvs && elvs.id) {
-          for (let i = 0; i < elvs.id.length; i++) {
-            const init = elvs.Initiales ? elvs.Initiales[i] : ((elvs.Prenom ? elvs.Prenom[i] : '') + ' ' + (elvs.Nom ? elvs.Nom[i] : ''));
-            const classe = elvs.Classe ? elvs.Classe[i] : '';
-            elevesList.push({ id: elvs.id[i], initiales: init, classe: classe });
-            if (classe) classesSet.add(classe);
-
-            const opt = document.createElement('option');
-            opt.value = elvs.id[i];
-            opt.textContent = init + (classe ? ` (${classe})` : '');
-            modEleve.appendChild(opt);
-
-            const optF = document.createElement('option');
-            optF.value = elvs.id[i];
-            optF.textContent = init + (classe ? ` (${classe})` : '');
-            filterEleve.appendChild(optF);
-          }
-        }
-
-        const modClasse = document.getElementById('modal-classe');
-        const filterClasse = document.getElementById('filter-classe');
-        modClasse.innerHTML = '<option value="">-- Aucun groupe automatique --</option><option value="__ALL_CLASSES__">⭐ Toutes les classes</option><option value="__NEW_CLASSE__">➕ Saisir une nouvelle classe...</option>';
-        filterClasse.innerHTML = '<option value="">Toutes les classes</option>';
-
-        Array.from(classesSet).sort().forEach(c => {
-          getClassColor(c);
-          const opt = document.createElement('option');
-          opt.value = c;
-          opt.textContent = 'Toute la classe ' + c;
-          modClasse.appendChild(opt);
-
-          const optF = document.createElement('option');
-          optF.value = c;
-          optF.textContent = c;
-          filterClasse.appendChild(optF);
-        });
-      } catch (e) {}
-
-      refreshCalendar();
-    }
-
-    async function loadInscriptionsAndRefresh() {
-      try {
-        const insc = await grist.docApi.fetchTable('Inscriptions');
-        inscriptionsList = [];
-        if (insc && insc.id && insc.Seance && insc.Eleve) {
-          for (let i = 0; i < insc.id.length; i++) {
-            inscriptionsList.push({
-              id: insc.id[i],
-              seanceId: insc.Seance[i],
-              eleveId: insc.Eleve[i]
-            });
-          }
-        }
-      } catch (e) {}
-      refreshCalendar();
-    }
-
-    function populateActivityList() {
-      const distinctNames = new Set(['Sport', 'Entretien santé', 'Cinéma', 'Cuisine', 'Remise à niveau', 'Foot', 'Boxe', 'Ménage']);
-      rawSeances.forEach(r => {
-        if (r.Titre && r.Titre.trim() !== '') distinctNames.add(r.Titre.trim());
-      });
-
-      const actSelect = document.getElementById('modal-activite');
-      const cur = actSelect.value;
-      actSelect.innerHTML = '<option value="">-- Choisir une activité --</option><option value="__NEW__">➕ Créer une nouvelle activité...</option>';
-
-      Array.from(distinctNames).sort().forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        actSelect.appendChild(opt);
-      });
-      if (cur) actSelect.value = cur;
-    }
-
-    function refreshCalendar() {
-      if (!calendar) return;
-      calendar.removeAllEvents();
-      calendar.addEventSource(officialEvents);
-
-      const fClasse = document.getElementById('filter-classe').value;
-      const fEleveId = document.getElementById('filter-eleve').value ? parseInt(document.getElementById('filter-eleve').value, 10) : null;
-
-      const seanceEvents = rawSeances.map(r => {
-        const row = grist.mapColumnNames ? grist.mapColumnNames(r) : r;
-        const seanceId = r.id;
-
-        const elevesInscrits = inscriptionsList
-          .filter(i => i.seanceId === seanceId)
-          .map(i => elevesList.find(e => e.id === i.eleveId))
-          .filter(Boolean);
-
-        if (fEleveId) {
-          const hasEleve = elevesInscrits.some(e => e.id === fEleveId);
-          if (!hasEleve) return null;
-        } else if (fClasse) {
-          const hasClasse = elevesInscrits.some(e => e.classe === fClasse);
-          if (!hasClasse) return null;
-        }
-
-        const classePrincipale = elevesInscrits.length > 0 ? elevesInscrits[0].classe : '';
-        const themeColor = getClassColor(classePrincipale);
-        const refPrenom = resolveReferentName(r.Referents || row.Referents);
-
-        const d = fromGristDate(row.Debut || r.Debut);
-        const f = fromGristDate(row.Fin || r.Fin);
-        const initialesStr = elevesInscrits.map(e => e.initiales).filter(Boolean);
-
-        return {
-          id: String(r.id),
-          title: row.Titre || r.Titre || 'Séance',
-          start: d,
-          end: f,
-          backgroundColor: themeColor.bg,
-          borderColor: themeColor.border,
-          textColor: '#ffffff',
-          extendedProps: {
-            lieu: r.Lieu || row.Lieu || '',
-            referent: refPrenom,
-            classe: classePrincipale,
-            eleves: initialesStr
-          }
-        };
-      }).filter(e => e && e.start && e.end);
-
-      calendar.addEventSource(seanceEvents);
-    }
-
-    function snapToSlot(timeStr) {
-      const [h, m] = timeStr.split(':').map(Number);
-      const roundedM = m < 30 ? '00' : '30';
-      return `${String(h).padStart(2, '0')}:${roundedM}`;
-    }
-
-    function openCreateModal(info) {
-      document.getElementById('edit-id').value = "";
-      document.getElementById('modal-title').textContent = "Programmer une séance";
-      document.getElementById('modal-activite').value = "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('new-activite-nom').value = "";
-      document.getElementById('modal-lieu').value = "UJPE";
-      document.getElementById('modal-referent').value = "";
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('group-new-classe').style.display = 'none';
-      document.getElementById('new-classe-nom').value = "";
-      document.getElementById('modal-eleve').value = "";
-      document.getElementById('btn-delete').style.display = 'none';
-
-      selectedDateStr = info.startStr.split('T')[0];
-      const rawTime = info.startStr.split('T')[1].substring(0, 5);
-      const slot = snapToSlot(rawTime);
-      const startSelect = document.getElementById('modal-time-start');
-      if (startSelect.querySelector(`option[value="${slot}"]`)) startSelect.value = slot;
-
-      const diffMin = Math.round((info.end - info.start) / 60000);
-      const dureeSelect = document.getElementById('modal-duree');
-      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function openEditModal(rowId) {
-      const record = rawSeances.find(r => String(r.id) === String(rowId));
-      if (!record) return;
-
-      document.getElementById('edit-id').value = rowId;
-      document.getElementById('modal-title').textContent = "Modifier la séance";
-      document.getElementById('btn-delete').style.display = 'block';
-
-      const d = fromGristDate(record.Debut);
-      const f = fromGristDate(record.Fin);
-      selectedDateStr = d.toISOString().split('T')[0];
-
-      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      const slot = snapToSlot(timeStr);
-      const startSelect = document.getElementById('modal-time-start');
-      if (startSelect.querySelector(`option[value="${slot}"]`)) startSelect.value = slot;
-
-      const diffMin = Math.round((f - d) / 60000);
-      const dureeSelect = document.getElementById('modal-duree');
-      dureeSelect.value = (diffMin >= 30 && diffMin <= 180) ? String(diffMin) : "60";
-
-      document.getElementById('modal-activite').value = record.Titre || "";
-      document.getElementById('group-new-activite').style.display = 'none';
-      document.getElementById('modal-lieu').value = record.Lieu || "UJPE";
-
-      const refField = record.Referents;
-      let targetRefId = "";
-      if (Array.isArray(refField)) {
-        targetRefId = refField.find(x => typeof x === 'number') || "";
-      } else if (typeof refField === 'number') {
-        targetRefId = refField;
-      }
-      document.getElementById('modal-referent').value = targetRefId;
-
-      document.getElementById('modal-classe').value = "";
-      document.getElementById('group-new-classe').style.display = 'none';
-      document.getElementById('modal-eleve').value = "";
-
-      document.getElementById('modal-overlay').style.display = 'flex';
-    }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').style.display = 'none';
-    }
-
-    async function saveSession() {
-      try {
-        let titre = document.getElementById('modal-activite').value;
-        if (titre === '__NEW__') {
-          titre = document.getElementById('new-activite-nom').value.trim();
-          if (!titre) { alert("Veuillez indiquer un nom d'activité."); return; }
-        }
-        if (!titre) { alert("Veuillez choisir ou saisir une activité."); return; }
-
-        const lieu = document.getElementById('modal-lieu').value;
-        const refVal = document.getElementById('modal-referent').value;
-        const refId = refVal ? parseInt(refVal, 10) : null;
-        const tStart = document.getElementById('modal-time-start').value;
-        const dureeMin = parseInt(document.getElementById('modal-duree').value, 10);
-
-        const debDate = new Date(`${selectedDateStr}T${tStart}:00`);
-        const finDate = new Date(debDate.getTime() + dureeMin * 60000);
-
-        const editId = document.getElementById('edit-id').value;
-        let seanceId = editId ? parseInt(editId, 10) : null;
-
-        const payload = {
-          Titre: titre,
-          Lieu: lieu,
-          Debut: toGristSec(debDate),
-          Fin: toGristSec(finDate)
-        };
-        if (refId) {
-          payload.Referents = ['L', refId];
-        } else {
-          payload.Referents = null;
-        }
-
-        if (seanceId) {
-          await grist.selectedTable.update({ id: seanceId, fields: payload });
-        } else {
-          const result = await grist.docApi.applyUserActions([['AddRecord', 'Seances', null, payload]]);
-          seanceId = result[0];
-        }
-
-        let classe = document.getElementById('modal-classe').value;
-        if (classe === '__NEW_CLASSE__') {
-          classe = document.getElementById('new-classe-nom').value.trim();
-        }
-        const eleveVal = document.getElementById('modal-eleve').value;
-
-        if (seanceId) {
-          let inscrits = [];
-          if (classe === '__ALL_CLASSES__' || eleveVal === '__ALL_ELEVES__') {
-            inscrits = elevesList;
-          } else if (classe) {
-            inscrits = elevesList.filter(e => e.classe === classe);
-          } else if (eleveVal) {
-            const eObj = elevesList.find(e => e.id === parseInt(eleveVal, 10));
-            if (eObj) inscrits = [eObj];
-          }
-
-          if (inscrits.length) {
-            const inscriptActions = inscrits.map(e => ['AddRecord', 'Inscriptions', null, { Seance: seanceId, Eleve: e.id }]);
-            await grist.docApi.applyUserActions(inscriptActions);
-          }
-        }
-
-        closeModal();
-        loadInscriptionsAndRefresh();
-      } catch (err) {
-        alert("Erreur lors de l'enregistrement : " + (err.message || err));
-      }
-    }
-
-    async function deleteSession() {
-      const editId = document.getElementById('edit-id').value;
-      if (!editId) return;
-      if (confirm("Supprimer cette séance ?")) {
-        try {
-          await grist.selectedTable.destroy([parseInt(editId, 10)]);
-          closeModal();
-        } catch (e) {
-          alert("Erreur lors de la suppression : " + e.message);
-        }
-      }
-    }
-
-    function updateTimes(event) {
-      grist.selectedTable.update({
-        id: parseInt(event.id, 10),
-        fields: {
-          Debut: toGristSec(event.start),
-          Fin: toGristSec(event.end)
-        }
-      });
-    }
-
-    /* GESTION DE SEMAINE */
-    function openManageModal() {
-      const view = calendar.view;
-      const startD = view.currentStart;
-      const endD = addDays(view.currentEnd, -1);
-      const fStart = startD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-      const fEnd = endD.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-      document.getElementById('manage-week-label').textContent = `Semaine affichée : du ${fStart} au ${fEnd}`;
-
-      document.getElementById('modal-manage-overlay').style.display = 'flex';
-    }
-
-    function closeManageModal() {
-      document.getElementById('modal-manage-overlay').style.display = 'none';
-    }
-
-    async function deleteSelectedDays() {
-      const daysChecked = [];
-      for (let i = 1; i <= 6; i++) {
-        if (document.getElementById(`del-day-${i}`).checked) daysChecked.push(i);
-      }
-
-      if (daysChecked.length === 0) {
-        alert("Veuillez cocher au moins une journée à supprimer.");
-        return;
-      }
-
-      if (!confirm("Confirmer la suppression des séances sur les journées sélectionnées ?")) return;
-
-      const view = calendar.view;
-      const startW = view.currentStart.getTime() / 1000;
-      const endW = view.currentEnd.getTime() / 1000;
-
-      const toDeleteIds = [];
-      rawSeances.forEach(r => {
-        const d = r.Debut;
-        if (d >= startW && d < endW) {
-          const dateObj = fromGristDate(d);
-          let dayNum = dateObj.getDay();
-          if (dayNum === 0) dayNum = 7;
-          if (daysChecked.includes(dayNum)) {
-            toDeleteIds.push(r.id);
-          }
-        }
-      });
-
-      if (toDeleteIds.length === 0) {
-        alert("Aucune séance trouvée sur ces journées.");
-        return;
-      }
-
-      try {
-        await grist.selectedTable.destroy(toDeleteIds);
-        closeManageModal();
-      } catch (e) {
-        alert("Erreur lors de la suppression : " + e.message);
-      }
-    }
-
-    async function copyPreviousWeek() {
-      const weeksAgo = parseInt(document.getElementById('manage-source-week').value, 10);
-      const deltaSec = weeksAgo * 7 * 86400;
-
-      const currentStart = calendar.view.currentStart;
-      const currentStartSec = currentStart.getTime() / 1000;
-      const currentEndSec = calendar.view.currentEnd.getTime() / 1000;
-
-      const sourceStartSec = currentStartSec - deltaSec;
-      const sourceEndSec = currentEndSec - deltaSec;
-
-      const fEleveId = document.getElementById('filter-eleve').value ? parseInt(document.getElementById('filter-eleve').value, 10) : null;
-      const fClasse = document.getElementById('filter-classe').value;
-
-      const sourceSeances = rawSeances.filter(r => {
-        if (r.Debut < sourceStartSec || r.Debut >= sourceEndSec) return false;
-        if (fEleveId) {
-          return inscriptionsList.some(i => i.seanceId === r.id && i.eleveId === fEleveId);
-        }
-        if (fClasse) {
-          const elvClasse = elevesList.filter(e => e.classe === fClasse).map(e => e.id);
-          return inscriptionsList.some(i => i.seanceId === r.id && elvClasse.includes(i.eleveId));
-        }
-        return true;
-      });
-
-      if (sourceSeances.length === 0) {
-        alert("Aucune séance trouvée dans la semaine source correspondant à vos filtres.");
-        return;
-      }
-
-      const activeStudentIds = new Set(elevesList.map(e => e.id));
-
-      if (!confirm(`Dupliquer ${sourceSeances.length} séance(s) sur la semaine active ?`)) return;
-
-      try {
-        for (const s of sourceSeances) {
-          const newDebut = s.Debut + deltaSec;
-          const newFin = s.Fin + deltaSec;
-
-          const payload = {
-            Titre: s.Titre,
-            Lieu: s.Lieu,
-            Debut: newDebut,
-            Fin: newFin,
-            Referents: s.Referents || null
-          };
-
-          const res = await grist.docApi.applyUserActions([['AddRecord', 'Seances', null, payload]]);
-          const newSeanceId = res[0];
-
-          let enrolled = inscriptionsList.filter(i => i.seanceId === s.id).map(i => i.eleveId);
-          if (fEleveId) enrolled = [fEleveId];
-          const validEnrolled = enrolled.filter(eid => activeStudentIds.has(eid));
-
-          if (validEnrolled.length > 0) {
-            const inscActions = validEnrolled.map(eid => ['AddRecord', 'Inscriptions', null, { Seance: newSeanceId, Eleve: eid }]);
-            await grist.docApi.applyUserActions(inscActions);
-          }
-        }
-
-        alert("Semaine recopiée avec succès !");
-        closeManageModal();
-        loadInscriptionsAndRefresh();
-      } catch (err) {
-        alert("Erreur lors de la recopie : " + err.message);
-      }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialiser);
+    } else {
+      initialiser();
     }
   </script>
 </body>
