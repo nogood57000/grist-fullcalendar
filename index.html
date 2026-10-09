@@ -12,7 +12,7 @@
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
+      height: 100vh;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #ffffff;
@@ -25,9 +25,6 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      z-index: 10;
     }
     .filter-item {
       display: flex;
@@ -44,16 +41,10 @@
       font-size: 13px;
       background: #ffffff;
     }
-    #calendar-container {
-      position: absolute;
-      top: 44px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 4px 8px;
-    }
     #calendar {
-      height: 100%;
+      height: calc(100vh - 46px) !important;
+      min-height: 550px;
+      padding: 4px 8px;
     }
 
     /* Cartes séances */
@@ -174,7 +165,7 @@
     #print-header .print-title { font-size: 16px; font-weight: bold; color: #1f4e79; }
     #print-header .print-sub { font-size: 12px; font-weight: 600; color: #495057; margin-top: 2px; }
 
-    /* MISE EN PAGE IMPRESSION A4 PAYSAGE */
+    /* Impression A4 Paysage */
     @media print {
       @page {
         size: A4 landscape;
@@ -195,12 +186,6 @@
         height: auto !important;
         overflow: visible !important;
         background: #ffffff !important;
-        position: static !important;
-      }
-      #calendar-container {
-        position: static !important;
-        height: auto !important;
-        padding: 0 !important;
       }
       #calendar {
         height: 180mm !important;
@@ -247,9 +232,7 @@
     <div class="print-sub" id="print-header-sub">Destinataire : Toutes les classes</div>
   </div>
 
-  <div id="calendar-container">
-    <div id="calendar"></div>
-  </div>
+  <div id="calendar"></div>
   <div id="event-tooltip"></div>
 
   <!-- Modale Saisie Séance -->
@@ -500,6 +483,7 @@
         slotDuration: '00:30:00',
         allDaySlot: false,
         displayEventTime: false,
+        height: '100%',
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
@@ -580,9 +564,7 @@
         loadInscriptionsAndRefresh();
       });
 
-      // Recalcule le format dès que la fenêtre est stable
       setTimeout(() => { if (calendar) calendar.updateSize(); }, 300);
-      window.addEventListener('resize', () => { if (calendar) calendar.updateSize(); });
     });
 
     function resolveReferentName(refField) {
